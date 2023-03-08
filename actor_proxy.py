@@ -1,9 +1,11 @@
 from actorNet import actorNet
 from PyTorchTool.Category_proxy import Category_proxy
+import torch
 class actor_proxy(Category_proxy):
     def __init__(self):
         super(actor_proxy, self).__init__(2) #首先调用父类的初始化函数进行初始化
-        self.actor_=actorNet()
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.actor_=actorNet().to(self.device)
         self.setNet(self.actor_)
         self.writer=0
         pass

@@ -2,6 +2,7 @@ import numpy as np
 import torch
 class Basic_env:
     def __init__(self):
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         pass
     def set_pointee(self,pointee):
         self.pointee=pointee
@@ -13,6 +14,7 @@ class Basic_env:
         else:
             obs=statenext
         obs=self.typecheck(obs)
+        obs = torch.tensor(obs, dtype=torch.float32, device=self.device)
         if(hasattr(self.pointee.pointee, 'getreward')):
             reward=self.pointee.pointee.getreward(statenext,actionin)
         else:

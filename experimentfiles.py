@@ -4,9 +4,12 @@ from PTorchEnv.ReplayMemory import ReplayMemory
 from PTorchEnv.DiscreteOpt import DiscreteOpt
 import random
 from PyTorchTool.RLDebugger import RLDebugger
-
+from PTorchEnv.matrix_copt_tool import deepcopyMat
 from tensorboardX import SummaryWriter
-writer =SummaryWriter("my_log_dir")
+
+from datetime import datetime
+TIMESTAMP = "{0:%Y-%m-%dT%H-%M-%S/}".format(datetime.now())
+writer =SummaryWriter("./my_log_dir/"+TIMESTAMP)
 # ploterr=RLDebugger()
 optimizer=DiscreteOpt()
 BATCHSIZE=100000
@@ -15,13 +18,13 @@ optimizer.set_Replaybuff(replaybuff,1000,0.9,1e-3)
 envnow=CartpoleTCP(8001,"127.0.0.1")
 actor=actor_proxy()
 actor.actor_.writer=writer
-actor.use_eps_flag=1
+actor.use_eps_flag=0
 actor_target=actor_proxy()
 optimizer.set_NET(actor.actor,actor_target.actor)
 initstate=[0,0,0.5*(random.random()-0.5),0]
 # initstate=[0,0,0.5*(0.1-0.5),0]
-envnow.setstate(initstate)
-lastobs=initstate
+lastobs=envnow.setstate(initstate)
+
 step_done=0
 total_reward=0
 epoch=1
@@ -35,11 +38,10 @@ while True:
 
         obs=None
         initstate=[0,0,0.5*(random.random()-0.5),0]
-        envnow.setstate(initstate)
+        lastobs=envnow.setstate(initstate)
 
     replaybuff.appendnew(lastobs,actor.action,obs,reward)
     if done or info=="speed_out":
-        lastobs=initstate
         if step_done>10000 :#训练过程
             loss=optimizer.loss_calc()
             loss.backward()
@@ -53,12 +55,13 @@ while True:
             # actor.response(lastobs)
             writer.add_histogram("Bellman",optimizer.record_expected_state_action_values, epoch)
             writer.add_histogram("next state q",optimizer.record_next_state_values_musked, epoch)
+
             writer.add_scalar("reward",total_reward,epoch)
             writer.add_scalar("loss/train",loss,epoch)
             actor.use_eps_flag=1
             total_reward=0
     else:
-        lastobs=obs.copy()
+        lastobs=deepcopyMat(obs)
     step_done+=1
 
 

@@ -3,8 +3,9 @@ from PTorchEnv.massel import massel
 from PTorchEnv.ReplayMemory import ReplayMemory
 from PTorchEnv.DiscreteOpt import DiscreteOpt
 from tensorboardX import SummaryWriter
-
-writer =SummaryWriter("my_log_dir")
+from datetime import datetime
+TIMESTAMP = "{0:%Y-%m-%dT%H-%M-%S/}".format(datetime.now())
+writer =SummaryWriter("./my_log_dir/"+TIMESTAMP)
 optimizer=DiscreteOpt()
 BATCHSIZE=5
 replaybuff=ReplayMemory(BATCHSIZE)

@@ -11,7 +11,7 @@ class ReplayMemory(object):
 
     def __init__(self, capacity):
         self.memory = deque([], maxlen=capacity)
-        self.device=0
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.empty_nextstate_flag=0
     def push(self, *args):
         """Save a transition"""
@@ -51,6 +51,6 @@ class ReplayMemory(object):
         #non_final_mask中的False项使得上述赋值过程，直接将这个值给0，从而使得两边相等
         state_batch = torch.cat(batch.state)
         action_batch = torch.cat(batch.action)
-        reward_batch = torch.cat(batch.reward)
+        reward_batch = torch.cat(batch.reward).to(self.device)
         #这三个都是全系列的，不考虑下一步是否终结，尺寸始终为Batchsize
         return state_batch,action_batch,reward_batch,non_final_mask,non_final_next_states

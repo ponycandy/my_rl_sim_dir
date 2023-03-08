@@ -7,6 +7,7 @@ import torch
 import torch.optim as optim
 class DiscreteOpt:
     def __init__(self):
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         pass
     def set_Replaybuff(self,buf,batchsize,reward_decay_rate,learning_rate):
         self.replaybuff=buf
@@ -38,7 +39,7 @@ class DiscreteOpt:
         else:
             print("optimizer net is not set yet!")
             return
-        next_state_values = torch.zeros(self.BATCHSIZE)
+        next_state_values = torch.zeros(self.BATCHSIZE,device=self.device)
         with torch.no_grad():
             if self.replaybuff.empty_nextstate_flag==0:  #进行test_if测试算法或者其它变量的影响时，防止报错
                 next_state_values[non_final_mask] = self.actor_targetNet(non_final_next_states).max(1)[0]
