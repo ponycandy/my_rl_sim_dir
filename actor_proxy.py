@@ -20,7 +20,7 @@ class actor_proxy(Category_proxy):
     def chooseaction(self,num):
         if num==0:
         #左移
-            force=10
+            force=50
         else:
-            force=-10
+            force=-50
         return force

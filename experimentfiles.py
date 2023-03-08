@@ -1,5 +1,5 @@
 from actor_proxy import actor_proxy
-from PTorchEnv.PushingBoxTCP import PushingBoxTCP
+from PTorchEnv.CartpoleTCP import CartpoleTCP
 from PTorchEnv.ReplayMemory import ReplayMemory
 from PTorchEnv.DiscreteOpt import DiscreteOpt
 import random
@@ -9,16 +9,16 @@ from tensorboardX import SummaryWriter
 writer =SummaryWriter("my_log_dir")
 # ploterr=RLDebugger()
 optimizer=DiscreteOpt()
-BATCHSIZE=1000
+BATCHSIZE=100000
 replaybuff=ReplayMemory(BATCHSIZE)
-optimizer.set_Replaybuff(replaybuff,256,0.9,1e-3)
-envnow=PushingBoxTCP(8001,"127.0.0.1")
+optimizer.set_Replaybuff(replaybuff,1000,0.9,1e-3)
+envnow=CartpoleTCP(8001,"127.0.0.1")
 actor=actor_proxy()
 actor.actor_.writer=writer
-actor.use_eps_flag=0
+actor.use_eps_flag=1
 actor_target=actor_proxy()
 optimizer.set_NET(actor.actor,actor_target.actor)
-initstate=[1,1]
+initstate=[0,0,0.5*(random.random()-0.5),0]
 # initstate=[0,0,0.5*(0.1-0.5),0]
 envnow.setstate(initstate)
 lastobs=initstate
@@ -34,13 +34,13 @@ while True:
         # print("the action is:",action,"angle now:",obs[1,0])
 
         obs=None
-        initstate=[1,1]
+        initstate=[0,0,0.5*(random.random()-0.5),0]
         envnow.setstate(initstate)
 
     replaybuff.appendnew(lastobs,actor.action,obs,reward)
     if done or info=="speed_out":
         lastobs=initstate
-        if step_done>300 :#训练过程
+        if step_done>10000 :#训练过程
             loss=optimizer.loss_calc()
             loss.backward()
             writer.add_histogram("gradient check",actor.actor_.layer1.weight.grad, epoch)

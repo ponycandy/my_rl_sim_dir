@@ -3,7 +3,7 @@ from TorchTool import File_manage
 class actorNet(torch.nn.Module,File_manage):#这里要求的可变性较小
     def __init__(self):
         super(actorNet, self).__init__() #首先调用父类的初始化函数进行初始化
-        self.inputshape=2
+        self.inputshape=4
         self.writer=2
         self.save_output_layer1=0
         self.save_output_layer2=0

@@ -16,7 +16,7 @@ writer =SummaryWriter("my_log_dir")
 # ploterr=RLDebugger()
 optimizer=DiscreteOpt()
 BATCHSIZE=1000
-replaybuff=Prioritized_Replaybuffer(BATCHSIZE)
+replaybuff=ReplayMemory(BATCHSIZE)
 optimizer.set_Replaybuff(replaybuff,256,0.9,1e-3)
 envnow=PushingBoxTCP(8001,"127.0.0.1")
 actor=actor_proxy()
