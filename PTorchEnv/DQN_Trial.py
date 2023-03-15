@@ -58,8 +58,8 @@ class DQN_Trial(Trial_base):
         actor.use_eps_flag=1
         actor_target=agent.deepCopy()
         optimizer.set_NET(actor.actor,actor_target.actor)
-        initstate=self.State_Set_Command()
-        lastobs=envnow.setstate(initstate)
+        initstate=envnow.randominit()
+        lastobs=initstate
 
         step_done=0
         total_reward=0
@@ -71,12 +71,11 @@ class DQN_Trial(Trial_base):
 
             if done or info=="speed_out":
                 obs=None
-                initstate=self.State_Set_Command()
 
 
             replaybuff.appendnew(lastobs,actor.action,obs,reward)
             if done or info=="speed_out":
-                lastobs=envnow.setstate(initstate)
+                lastobs=envnow.randominit()
                 if step_done>BATCHSIZE+10 :#训练过程,只在每次完成一个epoch之后进行，并不是每一步都执行
                     loss=optimizer.loss_calc()
                     loss.backward()
@@ -85,7 +84,7 @@ class DQN_Trial(Trial_base):
                     epoch+=1
 
                     optimizer.TargetNetsoftupdate(0)
-                    actor.use_eps_flag=0
+                    # actor.use_eps_flag=0
                     # with torch.no_grad():
                     #     variance=RL_logger.calc_Residual_Varriance_Iterative(optimizer.record_expected_state_action_values[0,0],
                     #                                                          optimizer.record_next_state_values_musked.unsqueeze(1)[0,0])

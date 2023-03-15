@@ -1,4 +1,5 @@
 from TCPenv import TCPenv
+import random
 class CartpoleTCP(TCPenv):
     def __init__(self,port,IP):
         super(CartpoleTCP, self).__init__(port,IP)
@@ -54,3 +55,7 @@ class CartpoleTCP(TCPenv):
             self.steps=0
             return done
         return done
+    def randominit(self):
+        initstate=[0,0,0.1,0]
+        lastobs=self.setstate(initstate)
+        return lastobs

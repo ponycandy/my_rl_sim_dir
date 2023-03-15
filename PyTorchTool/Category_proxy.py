@@ -3,9 +3,11 @@ import torch
 import random
 import math
 from PTorchEnv.Typechecker import TensorTypecheck
+from PyTorchTool.FileManager import FileManager
 class Category_proxy():
     def __init__(self,choise_num):
         self.actions=choise_num
+        self.filemanage=FileManager()
         #default epsilon policy
         self.use_eps_flag=0
         self.learning_rate=0
@@ -51,3 +53,6 @@ class Category_proxy():
         self.env=envnow
     def random_action(self):#提供外部一个使用完全随机运动的接口
         return random.randint(0,self.actions-1)
+    def save_model(self,agentid):
+        name="./agents_dir/agent_id_is_"+str(agentid)+"_"
+        self.filemanage.save_model(self.actor,name)

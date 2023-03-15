@@ -38,14 +38,14 @@ class DiscreteOpt:
             print("optimizer dont have a buffer yet!")
             return
         if(hasattr(self, 'actorNet') and hasattr(self, 'actor_targetNet')):
-            state_action_values=Calc_state_value(self.actorNet,state_batch,action_batch)
+            state_action_values=Calc_state_value(self.actorNet,state_batch.to(torch.float32),action_batch)
         else:
             print("optimizer net is not set yet!")
             return
         next_state_values = torch.zeros(self.BATCHSIZE,device=self.device)
         with torch.no_grad():
             if self.replaybuff.empty_nextstate_flag==0:  #进行test_if测试算法或者其它变量的影响时，防止报错
-                next_state_values[non_final_mask] = self.actor_targetNet(non_final_next_states).max(1)[0]
+                next_state_values[non_final_mask] = self.actor_targetNet(non_final_next_states.to(torch.float32)).max(1)[0]
                 #这种赋值方法就是，使用一个tensor来赋值，这个tensor是bool的，在对应true的地方，将值拷贝过来，False地方，拷贝0值
                 #例如：non_final_mask=[ True,  True, False,  True,  True]
                 #上式右侧为[0.5126, 0.5458, 0.6562, 0.7063]
