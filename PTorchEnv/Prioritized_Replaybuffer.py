@@ -17,7 +17,7 @@ class Prioritized_Replaybuffer():
     abs_err_upper = 1.  # clipped abs error
     def __init__(self,capacity):
         self.tree = SumTree(capacity)
-        self.device=0
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.empty_nextstate_flag=0
         pass
     def sample(self,batchsize):
@@ -42,13 +42,12 @@ class Prioritized_Replaybuffer():
             v = np.random.uniform(a, b)
             idx, p, data = self.tree.get_leaf(v)
             prob = p / self.tree.total_p
-            if(min_prob==0):
-                min_prob=0.1
+#确保训练前，本buffer已经填满，否则会出现不可预料的错误
             ISWeights[i, 0] = np.power(prob/min_prob, -self.beta)
             b_idx[i]= idx
             b_memory.append(data)
         # returnlist_1=[ b_idx, b_memory, ISWeights]
-        self.weight_record=torch.from_numpy(ISWeights)
+        self.weight_record=torch.from_numpy(ISWeights).to(self.device)
         self.index_recorded=b_idx
         #上面是prioritized部分，下面是取样部分，可以仿照replaybuffer
 
@@ -77,7 +76,7 @@ class Prioritized_Replaybuffer():
         #non_final_mask中的False项使得上述赋值过程，直接将这个值给0，从而使得两边相等
         state_batch = torch.cat(batch.state)
         action_batch = torch.cat(batch.action)
-        reward_batch = torch.cat(batch.reward)
+        reward_batch = torch.cat(batch.reward).to(self.device)
         #这三个都是全系列的，不考虑下一步是否终结，尺寸始终为Batchsize
         return state_batch,action_batch,reward_batch,non_final_mask,non_final_next_states
         #返回的三个值含义是：bacth在树中的index，bacth数据本身，batch的权重
@@ -87,7 +86,7 @@ class Prioritized_Replaybuffer():
     def batch_update(self, tree_idx, abs_errors):#abs_errors为n*1矩阵，二维tensor
         #这里看来abserror应该是各个差值的abs值
         abs_errors += self.epsilon  # convert to abs and avoid 0
-        clipped_errors = np.minimum(abs_errors, self.abs_err_upper)
+        clipped_errors = np.minimum(abs_errors.cpu(), self.abs_err_upper)
         ps = np.power(clipped_errors, self.alpha)
         count=0
         for ti in tree_idx:

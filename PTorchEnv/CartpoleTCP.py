@@ -43,7 +43,7 @@ class CartpoleTCP(TCPenv):
             done=1
             self.steps=0
             return done
-        if(self.steps>140):#step步数最好不要大于采样数，因为DQN是从终点开始学起的，想办法加大终点被采样的概率吧
+        if(self.steps>500):#step步数最好不要大于采样数，因为DQN是从终点开始学起的，想办法加大终点被采样的概率吧
             info="speed_out"
             done=1
             self.steps=0

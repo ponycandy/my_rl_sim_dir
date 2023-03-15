@@ -1,6 +1,7 @@
 from Basic_env import Basic_env
 class Pyenv(Basic_env):
     def __init__(self):
+        super(Pyenv, self).__init__()
         self.set_pointee(self)
         self.statenow=0
         self.statedim=0

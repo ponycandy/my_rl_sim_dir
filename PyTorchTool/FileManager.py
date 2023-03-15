@@ -2,6 +2,8 @@ import torch
 import threading
 import datetime as dt
 #输入的model类型，均为继承了torch.nn.Module的类
+#使用方法：1.令目标model继承这个类 2.兴建这个类对象，然后调用set_auto_mode和save_model即可
+#可以将这个类集成到actor_proxy里面
 class FileManager():
     def init_file_manage(self):
         self.saving_flag=0
@@ -13,7 +15,7 @@ class FileManager():
         self.name=name
         t = threading.Timer(interior_seconds, self.save_model())
         t.start()
-        #最好不要使用这个模式，否则可能会在训练一半的时候直接保存，数据出错
+        #最好不要使用这个模式，否则可能会在训练一半的时候直接保存，数据出错d
         pass
     def save_model(self):
         now_time = dt.datetime.now().strftime("%F-%H%M%S")

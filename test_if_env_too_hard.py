@@ -5,14 +5,17 @@ from PTorchEnv.PushingBoxTCP import PushingBoxTCP
 # from PTorchEnv.ReplayMemory import ReplayMemory
 from PTorchEnv.ReplayMemory import ReplayMemory
 from PTorchEnv.DiscreteOpt import DiscreteOpt
+from PTorchEnv.matrix_copt_tool import deepcopyMat
 import random
+from datetime import datetime
+from tensorboardX import SummaryWriter
 from PyTorchTool.RLDebugger import RLDebugger
 #如果这个环境测试可以通过，说明模型和算法已经能够通过最简单的复杂环境进行学习了
 #如果到目前为止的所有测试通过而目标环境不工作（这个RL和目标RL的唯一区别就是所用的env）
 #说明目标环境的reward设计不够合理，或者采样不合理，或者环境不可学习
 #下一步测试建议手写算法，检验环境是否MDP，算法是否可学
-from tensorboardX import SummaryWriter
-writer =SummaryWriter("my_log_dir")
+TIMESTAMP = "{0:%Y-%m-%dT%H-%M-%S/}".format(datetime.now())
+writer =SummaryWriter("./my_log_dir/"+TIMESTAMP)
 # ploterr=RLDebugger()
 optimizer=DiscreteOpt()
 BATCHSIZE=1000
@@ -26,8 +29,8 @@ actor_target=actor_proxy()
 optimizer.set_NET(actor.actor,actor_target.actor)
 initstate=[1,1]
 # initstate=[0,0,0.5*(0.1-0.5),0]
-envnow.setstate(initstate)
-lastobs=initstate
+lastobs=envnow.setstate(initstate)
+
 step_done=0
 total_reward=0
 epoch=1
@@ -41,11 +44,10 @@ while True:
 
         obs=None
         initstate=[1,1]
-        envnow.setstate(initstate)
+        lastobs=envnow.setstate(initstate)
 
     replaybuff.appendnew(lastobs,actor.action,obs,reward)
     if done or info=="speed_out":
-        lastobs=initstate
         if step_done>BATCHSIZE+10 :#训练过程
             loss=optimizer.loss_calc()
             loss.backward()
@@ -64,7 +66,7 @@ while True:
             actor.use_eps_flag=1
             total_reward=0
     else:
-        lastobs=obs.copy()
+        lastobs=deepcopyMat(obs)
     step_done+=1
 
 

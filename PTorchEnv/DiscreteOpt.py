@@ -14,12 +14,15 @@ class DiscreteOpt:
         self.BATCHSIZE=batchsize
         self.GAMA=reward_decay_rate
         self.LR=learning_rate
-        self.criterion = torch.nn.SmoothL1Loss()
+
         # 确定是否使用优先级replaybuffer，确保切换buffer做对比验证的时候不需要更改此处代码
         if hasattr(self.replaybuff,"batch_update"):
             self.use_prioritized_buffer=1
+
+
         else:
             self.use_prioritized_buffer=0
+            self.criterion = torch.nn.SmoothL1Loss()
     def set_NET(self,actorNet,actor_targetNet):
         self.actorNet=actorNet
         self.actor_targetNet=actor_targetNet
@@ -56,16 +59,13 @@ class DiscreteOpt:
         self.record_expected_state_action_values=expected_state_action_values
         self.record_next_state_values_musked=next_state_values
         if self.use_prioritized_buffer==1:
-
-            expected_state_action_values_weighted=torch.multiply(self.replaybuff.weight_record,expected_state_action_values)
-            state_action_values_weighted=torch.multiply(self.replaybuff.weight_record,state_action_values)
-        #此时是prioritized replay buff，需要更新经验池中所有transison的权值，此部分无法与DiscreteOPT解耦
-        #原本计算的是0.5*(state_action_values-expected_state_action_values)**2，现在，我们给每一个
-        #样本乘以其对应的权值，变成：0.5*(weight*(state_action_values-expected_state_action_values))**2
-        #然后求和，这就是prioritized方法的原理
-            loss = self.criterion(state_action_values_weighted, expected_state_action_values_weighted)
+            error=expected_state_action_values-state_action_values
+            self.criterion = torch.nn.MSELoss(reduction='none')
+            loss_md1 = self.criterion(expected_state_action_values, state_action_values)
+            loss_md2=torch.multiply(self.replaybuff.weight_record,loss_md1)
+            loss=torch.mean(loss_md2)
             with torch.no_grad():
-                abs_error=abs(expected_state_action_values-state_action_values)
+                abs_error=abs(error)
                 self.replaybuff.batch_update(self.replaybuff.index_recorded,abs_error)
                 #这一步根据loss更新各个样本的权值
             return loss

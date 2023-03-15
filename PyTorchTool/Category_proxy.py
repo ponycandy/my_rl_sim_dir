@@ -8,6 +8,7 @@ class Category_proxy():
         self.actions=choise_num
         #default epsilon policy
         self.use_eps_flag=0
+        self.learning_rate=0
         self.EPS_START = 0.99
         self.EPS_END = 0.05
         self.EPS_DECAY = 10000
@@ -18,6 +19,8 @@ class Category_proxy():
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.eps_threshold_record=0
         pass
+    def set_action_num(self,choise_num):
+        self.actions=choise_num
     def predict(self,vector):#type and size has been checked?
         vector=TensorTypecheck(vector)
         vector=vector.to(self.device)

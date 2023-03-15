@@ -1,24 +1,27 @@
 from actor_proxy import actor_proxy
 from PTorchEnv.CartpoleTCP import CartpoleTCP
 from PTorchEnv.ReplayMemory import ReplayMemory
+from PTorchEnv.Prioritized_Replaybuffer import Prioritized_Replaybuffer
 from PTorchEnv.DiscreteOpt import DiscreteOpt
 import random
 from PyTorchTool.RLDebugger import RLDebugger
 from PTorchEnv.matrix_copt_tool import deepcopyMat
 from tensorboardX import SummaryWriter
-
+from PTorchEnv.RL_parameter_calc import RL_Calculator
 from datetime import datetime
+import torch
+RL_logger=RL_Calculator()
 TIMESTAMP = "{0:%Y-%m-%dT%H-%M-%S/}".format(datetime.now())
 writer =SummaryWriter("./my_log_dir/"+TIMESTAMP)
 # ploterr=RLDebugger()
 optimizer=DiscreteOpt()
-BATCHSIZE=100000
-replaybuff=ReplayMemory(BATCHSIZE)
-optimizer.set_Replaybuff(replaybuff,1000,0.9,1e-3)
+BATCHSIZE=1000
+replaybuff=Prioritized_Replaybuffer(BATCHSIZE)
+optimizer.set_Replaybuff(replaybuff,250,0.9,1e-3)
 envnow=CartpoleTCP(8001,"127.0.0.1")
 actor=actor_proxy()
 actor.actor_.writer=writer
-actor.use_eps_flag=0
+actor.use_eps_flag=1
 actor_target=actor_proxy()
 optimizer.set_NET(actor.actor,actor_target.actor)
 initstate=[0,0,0.5*(random.random()-0.5),0]
@@ -33,16 +36,18 @@ while True:
 
     obs,reward,done,info=envnow.step(action)
     total_reward+=reward
+
     if done or info=="speed_out":
         # print("the action is:",action,"angle now:",obs[1,0])
 
         obs=None
         initstate=[0,0,0.5*(random.random()-0.5),0]
-        lastobs=envnow.setstate(initstate)
+
 
     replaybuff.appendnew(lastobs,actor.action,obs,reward)
     if done or info=="speed_out":
-        if step_done>10000 :#训练过程
+        lastobs=envnow.setstate(initstate)
+        if step_done>BATCHSIZE+10 :#训练过程,只在每次完成一个epoch之后进行，并不是每一步都执行
             loss=optimizer.loss_calc()
             loss.backward()
             writer.add_histogram("gradient check",actor.actor_.layer1.weight.grad, epoch)
@@ -52,14 +57,19 @@ while True:
 
             optimizer.TargetNetsoftupdate(0)
             actor.use_eps_flag=0
-            # actor.response(lastobs)
-            writer.add_histogram("Bellman",optimizer.record_expected_state_action_values, epoch)
-            writer.add_histogram("next state q",optimizer.record_next_state_values_musked, epoch)
-
-            writer.add_scalar("reward",total_reward,epoch)
-            writer.add_scalar("loss/train",loss,epoch)
-            actor.use_eps_flag=1
-            total_reward=0
+            with torch.no_grad():
+                variance=RL_logger.calc_Residual_Varriance_Iterative(optimizer.record_expected_state_action_values[0,0],
+                                                                     optimizer.record_next_state_values_musked.unsqueeze(1)[0,0])
+                writer.add_histogram("Bellman",optimizer.record_expected_state_action_values, epoch)
+                writer.add_histogram("next state q",optimizer.record_next_state_values_musked, epoch)
+                if epoch <300:
+                    pass
+                else:
+                    writer.add_histogram("Residual_Varriance",variance, epoch)
+                writer.add_scalar("reward",total_reward,epoch)
+                writer.add_scalar("loss/train",loss,epoch)
+                actor.use_eps_flag=1
+                total_reward=0
     else:
         lastobs=deepcopyMat(obs)
     step_done+=1

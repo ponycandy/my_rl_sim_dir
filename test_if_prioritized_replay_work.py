@@ -1,3 +1,53 @@
+# import numpy as np
+# import torch
+# from  Prioritized_Replaybuffer import Prioritized_Replaybuffer
+#
+#
+# replaybuff=Prioritized_Replaybuffer(4)
+# # replaybuff.appendnew(1,1,None,1)  #1
+# replaybuff.appendnew(1,1,None,1) #1
+# replaybuff.appendnew(-1,1,None,-1)  #2
+# replaybuff.appendnew(-1,-1,None,1)  #3
+# replaybuff.appendnew(1,-1,None,-1)  #4
+#
+# state_batch,action_batch,reward_batch,non_final_mask,non_final_next_states=replaybuff.get_Batch_data(4)
+#
+# print("getall!")
+# abs_error=torch.tensor([[0.1,0.2,0.3,0.4]]).t()
+# #首先,abs_error只有在1以下（abs_error_upper）时才会有用
+# replaybuff.batch_update(replaybuff.index_recorded,abs_error)
+#
+# #验证高loss项在下次更容易选中
+# count1=0
+# count2=0
+# count3=0
+# count4=0
+# count5=0
+# while True:
+#     # abs_error=torch.tensor([[0.1,0.2,0.3,0.4]]).t()
+#     state_batch,action_batch,reward_batch,non_final_mask,non_final_next_states=replaybuff.get_Batch_data(1)
+#     if state_batch[0,0]== 1 and action_batch[0,0]==1:
+#         abs_error=torch.tensor([[0.1]]).t()
+#         count1+=1
+#     if state_batch[0,0]==-1 and action_batch[0,0]==1:
+#         abs_error=torch.tensor([[0.2]]).t()
+#         count2+=1
+#     if state_batch[0,0]==-1 and action_batch[0,0]==-1:
+#         abs_error=torch.tensor([[0.3]]).t()
+#         count3+=1
+#     if state_batch[0,0]==1 and action_batch[0,0]==-1:
+#         abs_error=torch.tensor([[0.4]]).t()
+#         count4+=1
+#     print(count1,count2,count3,count4)
+#     replaybuff.batch_update(replaybuff.index_recorded,abs_error)
+# #在搜寻树中，各个leaf的loss会接近于输入的loss，也就是abs_error
+# #但是，前提是，上面的error均显著小于1，否则必须要估计error的上界，不然，会导致所有的节点loss均为1
+# #理论上，没有太大问题，也可以验证count4显著大于另外两个了，的确加大了大baserror的选中概率
+# #那么，问题可能出现在loss函数上面？
+# #也就是isweight的计算上面？
+
+
+
 from actor_proxy import actor_proxy
 from PTorchEnv.TestType_env2 import TestType_env2
 from PTorchEnv.Prioritized_Replaybuffer import Prioritized_Replaybuffer
@@ -74,3 +124,84 @@ while True:
 
 #当前模型已经分析有效
 #试一下pendulum经典环境，学习非常之快，几乎一个迭代就能够获得目标行为
+
+
+
+
+
+from actor_proxy import actor_proxy
+from PTorchEnv.PushingBoxTCP import PushingBoxTCP
+# from PTorchEnv.ReplayMemory import ReplayMemory
+from PTorchEnv.ReplayMemory import ReplayMemory
+from PTorchEnv.Prioritized_Replaybuffer import Prioritized_Replaybuffer
+from PTorchEnv.DiscreteOpt import DiscreteOpt
+from PTorchEnv.matrix_copt_tool import deepcopyMat
+import random
+from datetime import datetime
+from tensorboardX import SummaryWriter
+from PyTorchTool.RLDebugger import RLDebugger
+TIMESTAMP = "{0:%Y-%m-%dT%H-%M-%S/}".format(datetime.now())
+writer =SummaryWriter("./my_log_dir/"+TIMESTAMP)
+# ploterr=RLDebugger()
+optimizer=DiscreteOpt()
+BATCHSIZE=1000
+replaybuff=Prioritized_Replaybuffer(BATCHSIZE)
+optimizer.set_Replaybuff(replaybuff,256,0.9,1e-3)
+envnow=PushingBoxTCP(8001,"127.0.0.1")
+actor=actor_proxy()
+actor.actor_.writer=writer
+actor.use_eps_flag=1
+actor_target=actor_proxy()
+optimizer.set_NET(actor.actor,actor_target.actor)
+initstate=[1,1]
+# initstate=[0,0,0.5*(0.1-0.5),0]
+lastobs=envnow.setstate(initstate)
+
+step_done=0
+total_reward=0
+epoch=1
+while True:
+    action=actor.response(lastobs)
+
+    obs,reward,done,info=envnow.step(action)
+    total_reward+=reward
+    if done or info=="speed_out":
+        # print("the action is:",action,"angle now:",obs[1,0])
+
+        obs=None
+        initstate=[1,1]
+        envnow.setstate(initstate)
+
+
+    replaybuff.appendnew(lastobs,actor.action,obs,reward)
+    if done or info=="speed_out":
+        if step_done>BATCHSIZE+10 :#训练过程
+            loss=optimizer.loss_calc()
+            loss.backward()
+            writer.add_histogram("gradient check",actor.actor_.layer1.weight.grad, epoch)
+            optimizer.updateNetwork(0)
+            epoch+=1
+            # ploterr.add_a_point(epoch,total_reward)
+
+            optimizer.TargetNetsoftupdate(0)
+            actor.use_eps_flag=0
+            # actor.response(lastobs)
+            writer.add_histogram("Bellman",optimizer.record_expected_state_action_values, epoch)
+            writer.add_histogram("next state q",optimizer.record_next_state_values_musked, epoch)
+            writer.add_scalar("reward",total_reward,epoch)
+            writer.add_scalar("loss/train",loss,epoch)
+            actor.use_eps_flag=1
+            total_reward=0
+            initstate=[1,1]
+            lastobs=envnow.setstate(initstate)
+        lastobs=envnow.setstate(initstate)
+
+    else:
+        lastobs=deepcopyMat(obs)
+    step_done+=1
+
+
+#已经验证prioritized replaybuff有效，并且学习epochs减少了约三分之一，算是极其重大的飞跃
+
+
+

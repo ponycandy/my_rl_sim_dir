@@ -45,6 +45,8 @@ class SumTree(object):
         3   4 5   6    -> storing priority for transitions
         Array type for storing:
         [0,1,2,3,4,5,6]
+
+        0~6不是P值，只是对应的index值
         """
         parent_idx = 0
         while True:     # the while loop is faster than the method in the reference code
