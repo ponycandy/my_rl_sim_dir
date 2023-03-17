@@ -11,9 +11,10 @@ class DQN_Actor_Proxy(Category_proxy):
         self.action=output
         return self.chooseaction(output)
     def randresponse(self):
+        # 不要在此处更改self.action这个值已经在policy_proxy里面赋值了
         output=self.random_action()
-        self.action=output
-        return self.chooseaction(output)
+        # self.action=output,
+        return output
     def setoutputList(self,actionlst):
         self.actionoutputlist=actionlst
     def chooseaction(self,num):

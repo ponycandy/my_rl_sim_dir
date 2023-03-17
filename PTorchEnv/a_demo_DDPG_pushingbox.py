@@ -39,7 +39,6 @@ args["Merge_results"]=10
 proxylist=myfactory.create_agent(args)
 actor_proxy=proxylist["actor"]
 actor_proxy.set_range([10],[0])
-actor_proxy.use_eps_flag=1
 critic_proxy=proxylist["critic"]
 actor_target=actor_proxy.deepCopy()
 critic_target=critic_proxy.deepCopy()
@@ -70,11 +69,6 @@ while True:
             # optimizer.updateCritic(0) 否则会造成梯度的中断，故在loss_calc外面没必要再执行一次
             optimizer.SoftTargetActor(0)
             optimizer.SoftTargetCritic(0)
-
-            writer.add_histogram("Bellman",optimizer.record_expected_state_action_values, epoch)
-            writer.add_scalar("reward",total_reward,epoch)
-            writer.add_scalar("critic_td_error/train",critic_td_error,epoch)
-            writer.add_scalar("actor_loss/train",critic_td_error,epoch)
     else:
         lastobs=deepcopyMat(obs)
     step_done+=1

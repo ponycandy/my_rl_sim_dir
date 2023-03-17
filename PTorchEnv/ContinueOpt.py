@@ -6,7 +6,7 @@ import torch
 import torch.optim as optim
 class ContinueOpt:
     def __init__(self):
-        pass
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     def set_Replaybuff(self,buf,batchsize,reward_decay_rate,learning_rate_a,learning_rate_c):
         self.replaybuff=buf
         self.BATCHSIZE=batchsize
@@ -44,15 +44,15 @@ class ContinueOpt:
         #源代码也是
         #critic的TD error
         #需要考虑非终点量的方法
-        Q_value_next_state = torch.zeros(self.BATCHSIZE).unsqueeze(1)
+        Q_value_next_state = torch.zeros(self.BATCHSIZE,device=self.device).unsqueeze(1)
         with torch.no_grad():
             #需要考虑到action是多维度的
             next_state_action = self.actor_targetNet(non_final_next_states)
             #next_state_action与non_final_next_states同维度，下面的criticNet只输出非终点量的价值预测，所以不需要non_final_mask
         # 下面的式子需要补足终点量的bellman值
             Q_value_next_state[non_final_mask] = self.critic_targetNet(non_final_next_states, next_state_action)
-
         q_bellman_target = reward_batch.to(torch.float32) + self.GAMA * Q_value_next_state  #对于terminal state需要补全为0
+        self.record_expected_state_action_values=q_bellman_target
         q_eval = self.criticNet(state_batch, action_batch)
         critic_td_error = self.mse_loss(q_bellman_target,q_eval)
         critic_td_error.backward(retain_graph=True)
