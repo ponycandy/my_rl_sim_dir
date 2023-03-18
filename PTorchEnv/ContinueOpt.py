@@ -1,6 +1,6 @@
 #Policy gradient算法，参照DDPG实现：
 #https://github.com/sherlockHSY/Reinforcement_learning_with_pytorch/blob/90c4f302b588bbf8be7962aaaa7f61c0234fb8d9/model_free/DDPG/DDPG.py#L100
-
+# 已通过的测试:value_learnt,value_learnt_predictable,discount_correct,actor_trained
 from PTorchEnv.Category_Func import Calc_state_value
 import torch
 import torch.optim as optim
@@ -38,24 +38,32 @@ class ContinueOpt:
         all_action = self.actorNet(state_batch)
         all_Q_value = self.criticNet(state_batch, all_action)
         actor_loss = -torch.mean(all_Q_value) #optimizer总是按照最小化loss的方向前进，在这里就是最大化reward
+        self.optimizer_a.zero_grad()
         actor_loss.backward(retain_graph=True)
+
         self.updateActor()
         #注意，这里不能够在外面backward，否则会和下面的backward发生计算图串联！！
         #源代码也是
         #critic的TD error
         #需要考虑非终点量的方法
         Q_value_next_state = torch.zeros(self.BATCHSIZE,device=self.device).unsqueeze(1)
-        with torch.no_grad():
-            #需要考虑到action是多维度的
-            next_state_action = self.actor_targetNet(non_final_next_states)
+        if self.replaybuff.empty_nextstate_flag==0:
+            with torch.no_grad():
+                # 需要考虑到action是多维度的
+                next_state_action = self.actor_targetNet(non_final_next_states)
             #next_state_action与non_final_next_states同维度，下面的criticNet只输出非终点量的价值预测，所以不需要non_final_mask
         # 下面的式子需要补足终点量的bellman值
             Q_value_next_state[non_final_mask] = self.critic_targetNet(non_final_next_states, next_state_action)
+        else:
+            pass
         q_bellman_target = reward_batch.to(torch.float32) + self.GAMA * Q_value_next_state  #对于terminal state需要补全为0
         self.record_expected_state_action_values=q_bellman_target
-        q_eval = self.criticNet(state_batch, action_batch)
+        q_eval = self.criticNet(state_batch.to(torch.float32), action_batch.to(self.device).to(torch.float32))
         critic_td_error = self.mse_loss(q_bellman_target,q_eval)
-        critic_td_error.backward(retain_graph=True)
+        # critic_td_error=torch.nn.SmoothL1Loss(q_bellman_target,q_eval)
+        self.optimizer_c.zero_grad()
+        critic_td_error.backward()
+
         self.updateCritic()
 
         return actor_loss,critic_td_error

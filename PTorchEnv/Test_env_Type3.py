@@ -1,32 +1,30 @@
+import random
+
 import numpy as np
 
 from Pyenv import Pyenv
 import collections
-class massel(Pyenv):
+from PTorchEnv.matrix_copt_tool import deepcopyMat
+class Test_env_Type3(Pyenv):
     def __init__(self):
-        super(massel, self).__init__()
+        super(Test_env_Type3, self).__init__()
         self.set_simer(self)
-
-        #总是使用statenow表示当前状态，请注意：
-    # statenow同样被parent级调用，所以不要更改变量名称！！
+        self.statenow=0
+        self.state_cache=0
+        self.stepdone=0
     def getreward(self,state,action):
-        if action[0,0]==1:
-            return 1
-        else:
-            return -1
+        value=deepcopyMat(action)
+        return value
     def calcobs(self,statevector):
         #这一次是保持0位，所以无需处置,但是，不能够一致输出
         #这个函数总是需要考虑到statevector最后一位是标志位的情况
-        return  statevector[0,:]
+        return  statevector
     def step_in(self,actionin):
-        self.statenow[0,0]+=actionin[0,0]
-        print("current_posision : ",self.statenow[0,0])
+        self.statenow=0
         return self.statenow
+
     def missiondonejudge(self,statenext):
-        if statenext[0,0]==5:
-            return 1
-        else:
-            return 0
+        return 1
     def sampleaction(self):
         return np.mat(collections.random())
     # def setstate_(self,state):

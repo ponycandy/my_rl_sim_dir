@@ -49,8 +49,8 @@ class ReplayMemory(object):
         # next_state_values[non_final_mask] = targetNet(non_final_next_states).max(1)[0]
         # 以上面的指令为例，next_state_values的尺寸大于non_final_next_states，但是等于non_final_mask
         #non_final_mask中的False项使得上述赋值过程，直接将这个值给0，从而使得两边相等
-        state_batch = torch.cat(batch.state)
-        action_batch = torch.cat(batch.action)
+        state_batch = torch.cat(batch.state).to(torch.float32)
+        action_batch = torch.cat(batch.action).to(torch.float32)
         reward_batch = torch.cat(batch.reward).to(self.device)
         #这三个都是全系列的，不考虑下一步是否终结，尺寸始终为Batchsize
         return state_batch,action_batch,reward_batch,non_final_mask,non_final_next_states
