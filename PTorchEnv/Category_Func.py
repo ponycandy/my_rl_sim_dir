@@ -1,8 +1,11 @@
+import torch
+
+
 def Calc_state_value(model,state_batch,action_batch):
     if( len(action_batch.shape)==1):
         state_action_values = model(state_batch).gather(1, action_batch.unsqueeze(1))
     else:
-        state_action_values = model(state_batch).gather(1, action_batch)
+        state_action_values = model(state_batch).gather(1, action_batch.to(torch.int64))
     #首先说明gather函数的含义:C=A.gather(1,B)
     # 是指生成一个矩阵C，它的尺寸和B相同，其所有元素取自A
     # 元素的选取规则是这样的：

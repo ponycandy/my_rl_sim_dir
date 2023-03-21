@@ -1,9 +1,10 @@
 from actorNet import actorNet
 from PyTorchTool.Category_proxy import Category_proxy
 import torch
+import copy
 class actor_proxy(Category_proxy):
     def __init__(self):
-        super(actor_proxy, self).__init__(3) #首先调用父类的初始化函数进行初始化
+        super(actor_proxy, self).__init__(2) #首先调用父类的初始化函数进行初始化
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.actor_=actorNet().to(self.device)
         self.setNet(self.actor_)
@@ -28,3 +29,7 @@ class actor_proxy(Category_proxy):
         if num==2:
             force=0
         return force
+    def deepCopy(self):
+        target_net_proxy= copy.deepcopy(self)
+        target_net_proxy.actor_.load_state_dict(self.actor_.state_dict())
+        return target_net_proxy

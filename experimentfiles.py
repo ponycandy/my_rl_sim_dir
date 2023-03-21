@@ -1,82 +1,94 @@
-from PTorchEnv.PushingBoxTCP import PushingBoxTCP
+from actor_proxy import actor_proxy
+import gymnasium as gym
+from PTorchEnv.CartpoleTCP import CartpoleTCP
 from PTorchEnv.ReplayMemory import ReplayMemory
 from PTorchEnv.Prioritized_Replaybuffer import Prioritized_Replaybuffer
-from PTorchEnv.ContinueOpt import ContinueOpt
+from PTorchEnv.DiscreteOpt import DiscreteOpt
 import random
 from PyTorchTool.RLDebugger import RLDebugger
 from PTorchEnv.matrix_copt_tool import deepcopyMat
 from tensorboardX import SummaryWriter
 from PTorchEnv.RL_parameter_calc import RL_Calculator
 from datetime import datetime
-from NNFactory import NNFactory
 import torch
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 RL_logger=RL_Calculator()
 TIMESTAMP = "{0:%Y-%m-%dT%H-%M-%S/}".format(datetime.now())
 writer =SummaryWriter("./my_log_dir/"+TIMESTAMP)
 # ploterr=RLDebugger()
-optimizer=ContinueOpt()
-BATCHSIZE=1000
+optimizer=DiscreteOpt()
+BATCHSIZE=10000
 replaybuff=ReplayMemory(BATCHSIZE)
-optimizer.set_Replaybuff(replaybuff,100,0.9,learning_rate_a=1e-3,learning_rate_c=1e-3)
-envnow=PushingBoxTCP(8001,"127.0.0.1")
-myfactory=NNFactory()
-args={}
-args["Net_option"]="DDPG_Net"
-args["inputnum_int"]=2
-args["outputnum_int"]=1
-args["num_layers"]=2
-args["n_units_l0"]=8
-args["n_units_l1"]=10
-args["len_act"]=1
-args["len_state"]=1
-args["len_output"]=1
-args["action_n_units_l0"]=10
-args["state_n_units_l0"]=10
-args["output_n_units_l0"]=10
-args["Merge_results"]=10
+optimizer.set_Replaybuff(replaybuff,128,0.9,1e-4)
+# envnow=CartpoleTCP(8001,"127.0.0.1")
+envnow = gym.make("CartPole-v1")
+actor=actor_proxy()
+actor.actor_.writer=writer
+actor.use_eps_flag=1
+actor.EPS_DECAY=1000
+actor_target=actor_proxy()
+actor_target.actor_.load_state_dict(actor.actor_.state_dict())
+optimizer.set_NET(actor.actor,actor_target.actor)
+initstate=[0,0,0.5*(random.random()-0.5),0]
+# initstate=[0,0,0.5*(0.1-0.5),0]
 
-
-proxylist=myfactory.create_agent(args)
-actor_proxy=proxylist["actor"]
-actor_proxy.set_range([10],[0])
-actor_proxy.use_eps_flag=1
-critic_proxy=proxylist["critic"]
-actor_target=actor_proxy.deepCopy()
-critic_target=critic_proxy.deepCopy()
-optimizer.set_NET(actor_proxy.actor,actor_target.actor,critic_proxy.actor,critic_target.actor)
-initstate=[0,0]
-lastobs=envnow.setstate(initstate)
+state, info = envnow.reset()
+lastobs = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
 step_done=0
 total_reward=0
 epoch=1
 while True:
-    action=actor_proxy.response(lastobs)
+    action=actor.response(lastobs)
 
-    obs,reward,done,info=envnow.step(action)
+    observation, reward, terminated, truncated, _ = envnow.step(actor.action.item())
+    obs = torch.tensor(observation, dtype=torch.float32, device=device).unsqueeze(0)
     total_reward+=reward
-
-    if done or info=="speed_out":
+    done = terminated or truncated
+    if terminated:
+        # print("the action is:",action,"angle now:",obs[1,0])
         obs=None
 
 
-    replaybuff.appendnew(lastobs,actor_proxy.action,obs,reward)
+    replaybuff.appendnew(lastobs,actor.action,obs,int(reward))
     if done or info=="speed_out":
-        lastobs=envnow.setstate(initstate)
-        if step_done>BATCHSIZE+10 :#训练过程,只在每次完成一个epoch之后进行，并不是每一步都执行
-            actor_loss,critic_td_error=optimizer.loss_calc()
-            epoch+=1
+        state, info = envnow.reset()
+        lastobs = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
 
-            # optimizer.updateActor(0)  这两步必须在计算完成loss之后立刻进行
-            # optimizer.updateCritic(0) 否则会造成梯度的中断，故在loss_calc外面没必要再执行一次
-            optimizer.SoftTargetActor(0)
-            optimizer.SoftTargetCritic(0)
-            writer.add_histogram("Bellman",optimizer.record_expected_state_action_values, epoch)
-            writer.add_scalar("reward",total_reward,epoch)
-            writer.add_scalar("critic_td_error/train",critic_td_error,epoch)
-            writer.add_scalar("actor_loss/train",actor_loss,epoch)
-            total_reward=0
+        if step_done>250 :#训练过程,只在每次完成一个epoch之后进行，并不是每一步都执行
+            loss=optimizer.loss_calc()
+            loss.backward()
+            optimizer.updateNetwork(0)
+            epoch+=1
+            # ploterr.add_a_point(epoch,total_reward)
+
+            optimizer.TargetNetsoftupdate(0)
+            actor.use_eps_flag=0
+            with torch.no_grad():
+                variance=RL_logger.calc_Residual_Varriance_Iterative(optimizer.record_expected_state_action_values[0,0],
+                                                                     optimizer.record_next_state_values_musked.unsqueeze(1)[0,0])
+                writer.add_histogram("Bellman",optimizer.record_expected_state_action_values, epoch)
+                writer.add_histogram("next state q",optimizer.record_next_state_values_musked, epoch)
+                if epoch <100:
+                    pass
+                else:
+                    writer.add_histogram("Residual_Varriance",variance, epoch)
+                writer.add_scalar("reward",total_reward,epoch)
+                writer.add_scalar("loss/train",loss,epoch)
+                actor.use_eps_flag=1
+                total_reward=0
     else:
         lastobs=deepcopyMat(obs)
     step_done+=1
+
+
+#这样一来，总的代码量就大量减小了
+#同时，需要重复的低级细节：如何解包压缩经验池，如何计算目标函数，如何升级权值，就可以被隐藏了
+#目前暴露的细节就是：1.我们可以选择合适选取经验池进行训练 2.选择网络升级的方法
+#封包的细节：1.off-policy的实施 2.targetNet的实施
+#要考虑的是通用性，现有的方法应该能够通用于一切value based agent
+
+#当前模型已经分析有效
+#试一下pendulum经典环境，学习非常之快，几乎一个迭代就能够获得目标行为
+
 
 

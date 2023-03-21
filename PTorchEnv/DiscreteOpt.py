@@ -72,7 +72,7 @@ class DiscreteOpt:
         if self.use_prioritized_buffer==0:
             # loss=0.5*(state_action_values-expected_state_action_values)**2
             #求出每一个TD误差后，要对总误差求和,也就是上面的向量各项求和，可以使用torch的内建函数解决：
-
+            self.optimizer.zero_grad()
             loss = self.criterion(state_action_values, expected_state_action_values)
             return loss
             #此时按照一般的计算方法计算loss

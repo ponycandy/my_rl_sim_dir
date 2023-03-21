@@ -15,18 +15,20 @@ TIMESTAMP = "{0:%Y-%m-%dT%H-%M-%S/}".format(datetime.now())
 writer =SummaryWriter("./my_log_dir/"+TIMESTAMP)
 # ploterr=RLDebugger()
 optimizer=DiscreteOpt()
-BATCHSIZE=1000
-replaybuff=Prioritized_Replaybuffer(BATCHSIZE)
-optimizer.set_Replaybuff(replaybuff,250,0.9,1e-3)
+BATCHSIZE=10000
+replaybuff=ReplayMemory(BATCHSIZE)
+optimizer.set_Replaybuff(replaybuff,128,0.9,1e-4)
 envnow=CartpoleTCP(8001,"127.0.0.1")
 actor=actor_proxy()
 actor.actor_.writer=writer
 actor.use_eps_flag=1
+actor.EPS_DECAY=1000
 actor_target=actor_proxy()
+actor_target.actor_.load_state_dict(actor.actor_.state_dict())
 optimizer.set_NET(actor.actor,actor_target.actor)
 initstate=[0,0,0.5*(random.random()-0.5),0]
 # initstate=[0,0,0.5*(0.1-0.5),0]
-lastobs=envnow.setstate(initstate)
+lastobs=envnow.randominit()
 
 step_done=0
 total_reward=0
@@ -41,16 +43,14 @@ while True:
         # print("the action is:",action,"angle now:",obs[1,0])
 
         obs=None
-        initstate=[0,0,0.5*(random.random()-0.5),0]
 
 
     replaybuff.appendnew(lastobs,actor.action,obs,reward)
     if done or info=="speed_out":
-        lastobs=envnow.setstate(initstate)
-        if step_done>BATCHSIZE+10 :#训练过程,只在每次完成一个epoch之后进行，并不是每一步都执行
+        lastobs=envnow.randominit()
+        if step_done>250 :#训练过程,只在每次完成一个epoch之后进行，并不是每一步都执行
             loss=optimizer.loss_calc()
             loss.backward()
-            writer.add_histogram("gradient check",actor.actor_.layer1.weight.grad, epoch)
             optimizer.updateNetwork(0)
             epoch+=1
             # ploterr.add_a_point(epoch,total_reward)
@@ -62,7 +62,7 @@ while True:
                                                                      optimizer.record_next_state_values_musked.unsqueeze(1)[0,0])
                 writer.add_histogram("Bellman",optimizer.record_expected_state_action_values, epoch)
                 writer.add_histogram("next state q",optimizer.record_next_state_values_musked, epoch)
-                if epoch <300:
+                if epoch <100:
                     pass
                 else:
                     writer.add_histogram("Residual_Varriance",variance, epoch)

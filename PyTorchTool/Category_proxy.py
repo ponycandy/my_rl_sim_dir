@@ -43,7 +43,7 @@ class Category_proxy():
             #为了将
             else:
                 self.random_action_happen_record+=1
-                return torch.tensor([[random.randint(0,self.actions-1)]], device=self.device, dtype=torch.long)  #这个确实是均匀分布
+                return torch.tensor([[random.randint(0,self.actions-1)]], device=self.device, dtype=torch.int64)  #这个确实是均匀分布
 
     def setNet(self,actorNet):
         self.actor=actorNet
