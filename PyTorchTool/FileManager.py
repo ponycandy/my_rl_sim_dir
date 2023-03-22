@@ -21,9 +21,9 @@ class FileManager():
         now_time = dt.datetime.now().strftime("%F-%H%M%S")
         torch.save(self.model_obj, self.name+now_time+'.pt')
         #name是一个字符串类型，比如:'network'，无需输入后缀名，这里会自动补全
-    def save_model(self,model,name):
-        now_time = dt.datetime.now().strftime("%F-%H%M%S")
-        torch.save(model, name+now_time+'.pt')
+    def save_model_out(self,model,name):
+        # now_time = dt.datetime.now().strftime("%F-%H%M%S")
+        torch.save(model, name+'.pt')
     def set_counter_mode(self,model_obj,name,savingiteration):
         self.saving_count=0
         self.saving_flag=1
@@ -66,8 +66,9 @@ class FileManager():
     #     #建议这里自动化
     # def save_model_param(self,model,name):
     #     torch.save(model.state_dict(), name+'_params.pkl')   # 只保存网络中的参数 (速度快, 占内存少)
-    # def load_params(self,model,name):
-    #     model.load_state_dict(torch.load(name+'_params.pkl'))
+    def load_params(self,name):
+        model=(torch.load(name+'.pt'))
+        return model
     # def automated_save_param(self,option,model,savingiteration=100):
     #     self.mmodel=model
     #     if(option==1):

@@ -32,6 +32,10 @@ class DiscreteOpt:
         state_batch,action_batch,reward_batch,non_final_mask,non_final_next_states=self.replaybuff.get_Batch_data(self.BATCHSIZE)
         return state_batch,action_batch,reward_batch,non_final_mask,non_final_next_states
     def loss_calc(self):
+        if len(self.replaybuff.memory) < self.BATCHSIZE:
+            self.optimizer.zero_grad()
+            loss = torch.zeros(1, requires_grad=True)
+            return loss
         if(hasattr(self, 'replaybuff')):
             state_batch,action_batch,reward_batch,non_final_mask,non_final_next_states=self.get_sample()
         else:
@@ -72,8 +76,9 @@ class DiscreteOpt:
         if self.use_prioritized_buffer==0:
             # loss=0.5*(state_action_values-expected_state_action_values)**2
             #求出每一个TD误差后，要对总误差求和,也就是上面的向量各项求和，可以使用torch的内建函数解决：
-            self.optimizer.zero_grad()
+
             loss = self.criterion(state_action_values, expected_state_action_values)
+            self.optimizer.zero_grad()
             return loss
             #此时按照一般的计算方法计算loss
 
@@ -84,7 +89,6 @@ class DiscreteOpt:
         if(update_method==0):#此方法激活使用优化器
             torch.nn.utils.clip_grad_value_(self.actorNet.parameters(), 100) #梯度裁剪，一种防止梯度爆炸的优化策略，非必要
             self.optimizer.step()
-            self.optimizer.zero_grad()
             return
         if(update_method==1):#此方法激活手动优化，极不推荐
             for param in self.actorNet.parameters():

@@ -11,6 +11,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 from datetime import datetime
+from PyTorchTool.FileManager import FileManager
 TIMESTAMP = "{0:%Y-%m-%dT%H-%M-%S/}".format(datetime.now())
 writer =SummaryWriter("./my_log_dir/"+TIMESTAMP)
 env = gym.make("CartPole-v1")
@@ -29,6 +30,13 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 Transition = namedtuple('Transition',
                         ('state', 'action', 'next_state', 'reward'))
 
+def weights_init(m):
+    if isinstance(m, torch.nn.Conv2d):
+        torch.nn.init.xavier_normal_(m.weight.data)
+        torch.nn.init.xavier_normal_(m.bias.data)
+    elif isinstance(m, torch.nn.BatchNorm2d):
+        torch.nn.init.constant_(m.weight,1)
+        torch.nn.init.constant_(m.bias, 0)
 
 class ReplayMemory(object):
 
@@ -82,6 +90,9 @@ state, info = env.reset()
 n_observations = len(state)
 
 policy_net = DQN(n_observations, n_actions).to(device)
+policy_net.apply(weights_init)
+file_saver=FileManager()
+file_saver.save_model_out(policy_net,"init_params")
 target_net = DQN(n_observations, n_actions).to(device)
 target_net.load_state_dict(policy_net.state_dict())
 
@@ -91,6 +102,13 @@ memory = ReplayMemory(10000)
 
 steps_done = 0
 
+def weights_init(m):
+    if isinstance(m, torch.nn.Conv2d):
+        torch.nn.init.xavier_normal_(m.weight.data)
+        torch.nn.init.xavier_normal_(m.bias.data)
+    elif isinstance(m, torch.nn.BatchNorm2d):
+        torch.nn.init.constant_(m.weight,1)
+        torch.nn.init.constant_(m.bias, 0)
 
 def select_action(state):
     global steps_done
@@ -178,6 +196,7 @@ def optimize_model():
     # Optimize the model
     optimizer.zero_grad()
     loss.backward()
+
     # In-place gradient clipping
     torch.nn.utils.clip_grad_value_(policy_net.parameters(), 100)
     optimizer.step()
@@ -211,7 +230,6 @@ for i_episode in range(num_episodes):
 
         # Perform one step of the optimization (on the policy network)
         optimize_model()
-
         # Soft update of the target network's weights
         # θ′ ← τ θ + (1 −τ )θ′
         target_net_state_dict = target_net.state_dict()

@@ -17,9 +17,9 @@ class actorNet(torch.nn.Module,File_manage):#这里要求的可变性较小
         Hidden_3=128
         D_out=2
         self.layer1 = torch.nn.Linear(D_in, Hidden_1)
-        self.layer2 = torch.nn.ReLU(inplace=True)
+        # self.layer2 = torch.nn.ReLU(inplace=True)
         self.layer3 = torch.nn.Linear(Hidden_1, Hidden_2)
-        self.layer4 = torch.nn.ReLU(inplace=True)
+        # self.layer4 = torch.nn.ReLU(inplace=True)
         # self.layer5 = torch.nn.Linear(Hidden_2, Hidden_3)
         # self.layer6 = torch.nn.ReLU(inplace=True)
         self.layer7 = torch.nn.Linear(Hidden_2, D_out)
@@ -33,19 +33,19 @@ class actorNet(torch.nn.Module,File_manage):#这里要求的可变性较小
     def forward(self, x):
         #先看actionNet的梯度计算吧
         x = x.to(torch.float32)
-        x=self.layer1(x)
+
+        x=torch.nn.functional.relu(self.layer1(x))
         # self.save_output_layer1=x
-        x=self.layer2(x)
+        # x=self.layer2(x)
         # self.save_output_layer2=x
-        x=self.layer3(x)
+        x=torch.nn.functional.relu(self.layer3(x))
         # self.save_output_layer3=x
-        x=self.layer4(x)
+        x=self.layer7(x)
         # self.save_output_layer4=x
         # x=self.layer5(x)
         # self.save_output_layer5=x
         # x=self.layer6(x)
         # self.save_output_layer6=x
-        x=self.layer7(x)
         return x
 
     def get_input_shape(self):

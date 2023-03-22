@@ -1,4 +1,5 @@
 from actor_proxy import actor_proxy
+import gymnasium as gym
 from PTorchEnv.CartpoleTCP import CartpoleTCP
 from PTorchEnv.ReplayMemory import ReplayMemory
 from PTorchEnv.Prioritized_Replaybuffer import Prioritized_Replaybuffer
@@ -10,41 +11,59 @@ from tensorboardX import SummaryWriter
 from PTorchEnv.RL_parameter_calc import RL_Calculator
 from datetime import datetime
 import torch
-import gymnasium as gym
-from PPO import PPO
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 RL_logger=RL_Calculator()
 TIMESTAMP = "{0:%Y-%m-%dT%H-%M-%S/}".format(datetime.now())
 writer =SummaryWriter("./my_log_dir/"+TIMESTAMP)
 # ploterr=RLDebugger()
-
+optimizer=DiscreteOpt()
+BATCHSIZE=10000
+replaybuff=ReplayMemory(BATCHSIZE)
+optimizer.set_Replaybuff(replaybuff,128,0.9,1e-4)
+# envnow=CartpoleTCP(8001,"127.0.0.1")
 envnow = gym.make("CartPole-v1")
+actor=actor_proxy()
+actor.actor_.writer=writer
+actor.use_eps_flag=1
+actor.EPS_DECAY=1000
+actor_target=actor_proxy()
+actor_target.actor_.load_state_dict(actor.actor_.state_dict())
+optimizer.set_NET(actor.actor,actor_target.actor)
+initstate=[0,0,0.5*(random.random()-0.5),0]
+# initstate=[0,0,0.5*(0.1-0.5),0]
 
-ppo_agent = PPO(4, 2, 1e-4, 1e-4, 0.9, 80, 0.2, False, 4000,0.6   )
 state, info = envnow.reset()
-
+lastobs = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
 step_done=0
 total_reward=0
 epoch=1
 while True:
-    action=ppo_agent.select_action(state)
+    action=actor.response(lastobs)
 
-    obs,reward,done,info,_=envnow.step(action)
+    observation, reward, terminated, truncated, _ = envnow.step(actor.action.item())
+    obs = torch.tensor(observation, dtype=torch.float32, device=device).unsqueeze(0)
     total_reward+=reward
-
-    if done :
+    done = terminated or truncated
+    if terminated:
         # print("the action is:",action,"angle now:",obs[1,0])
-
         obs=None
 
 
-    ppo_agent.buffer.rewards.append(reward)
-    ppo_agent.buffer.is_terminals.append(done)
-    callback=ppo_agent.update()
-    if callback==0:
-        pass
-    else:
-        epoch+=1
+    replaybuff.appendnew(lastobs,actor.action,obs,int(reward))
+    if terminated :
+        state, info = envnow.reset()
+        lastobs = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
         writer.add_scalar("reward",total_reward,epoch)
+        epoch+=1
+        total_reward=0
+        loss=optimizer.loss_calc()
+        loss.backward()
+        optimizer.updateNetwork(0)
+        optimizer.TargetNetsoftupdate(0)
+
+    else:
+        lastobs=deepcopyMat(obs)
+
 
     step_done+=1
 

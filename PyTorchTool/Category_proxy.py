@@ -11,9 +11,9 @@ class Category_proxy():
         #default epsilon policy
         self.use_eps_flag=0
         self.learning_rate=0
-        self.EPS_START = 0.99
+        self.EPS_START = 0.9
         self.EPS_END = 0.05
-        self.EPS_DECAY = 10000
+        self.EPS_DECAY = 1000
         self.eps_step=0
         self.device=0
         self.env=0
@@ -24,7 +24,7 @@ class Category_proxy():
     def set_action_num(self,choise_num):
         self.actions=choise_num
     def predict(self,vector):#type and size has been checked?
-        vector=TensorTypecheck(vector)
+        vector=TensorTypecheck(vector).to(torch.float32)
         vector=vector.to(self.device)
         if self.use_eps_flag==0:
             action=self.actor(vector).max(1)[1].view(1, 1)#返回value值最大的那一项神经元对应的index
@@ -42,7 +42,9 @@ class Category_proxy():
                 return self.actor(vector).max(1)[1].view(1, 1)
             #为了将
             else:
+                # temperory_test
                 self.random_action_happen_record+=1
+                # return torch.tensor([[self.env.action_space.sample()]], device=self.device, dtype=torch.int64)  #这个确实是均匀分布
                 return torch.tensor([[random.randint(0,self.actions-1)]], device=self.device, dtype=torch.int64)  #这个确实是均匀分布
 
     def setNet(self,actorNet):
