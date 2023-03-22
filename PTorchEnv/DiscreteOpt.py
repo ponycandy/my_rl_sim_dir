@@ -18,7 +18,7 @@ class DiscreteOpt:
         # 确定是否使用优先级replaybuffer，确保切换buffer做对比验证的时候不需要更改此处代码
         if hasattr(self.replaybuff,"batch_update"):
             self.use_prioritized_buffer=1
-
+            self.criterion = torch.nn.SmoothL1Loss()
 
         else:
             self.use_prioritized_buffer=0
@@ -68,6 +68,8 @@ class DiscreteOpt:
             loss_md1 = self.criterion(expected_state_action_values, state_action_values)
             loss_md2=torch.multiply(self.replaybuff.weight_record,loss_md1)
             loss=torch.mean(loss_md2)
+            self.optimizer.zero_grad()
+
             with torch.no_grad():
                 abs_error=abs(error)
                 self.replaybuff.batch_update(self.replaybuff.index_recorded,abs_error)
