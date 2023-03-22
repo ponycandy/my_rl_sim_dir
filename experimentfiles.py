@@ -51,7 +51,7 @@ while True:
 
 
     replaybuff.appendnew(lastobs,actor.action,obs,reward)
-    if terminated :
+    if terminated or truncated:
         state, info = envnow.reset()
         lastobs = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
         writer.add_scalar("reward",total_reward,epoch)
