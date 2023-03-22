@@ -57,6 +57,7 @@ class DQN_Trial(Trial_base):
         actor=agent
         actor.use_eps_flag=1
         actor_target=agent.deepCopy()
+        actor_target.actor_.load_state_dict(actor.actor_.state_dict())
         optimizer.set_NET(actor.actor,actor_target.actor)
         initstate=envnow.randominit()
         lastobs=initstate
@@ -76,28 +77,15 @@ class DQN_Trial(Trial_base):
             replaybuff.appendnew(lastobs,actor.action,obs,reward)
             if done or info=="speed_out":
                 lastobs=envnow.randominit()
-                if step_done>BATCHSIZE+10 :#训练过程,只在每次完成一个epoch之后进行，并不是每一步都执行
-                    loss=optimizer.loss_calc()
-                    loss.backward()
-                    # writer.add_histogram("gradient check",actor.actor_.layer1.weight.grad, epoch)
-                    optimizer.updateNetwork(0)
-                    epoch+=1
-
-                    optimizer.TargetNetsoftupdate(0)
-                    # actor.use_eps_flag=0
-                    # with torch.no_grad():
-                    #     variance=RL_logger.calc_Residual_Varriance_Iterative(optimizer.record_expected_state_action_values[0,0],
-                    #                                                          optimizer.record_next_state_values_musked.unsqueeze(1)[0,0])
-                    #     writer.add_histogram("Bellman",optimizer.record_expected_state_action_values, epoch)
-                    #     writer.add_histogram("next state q",optimizer.record_next_state_values_musked, epoch)
-                    #     if epoch <300:
-                    #         pass
-                    #     else:
-                    #         writer.add_histogram("Residual_Varriance",variance, epoch)
-                    #     writer.add_scalar("reward",total_reward,epoch)
-                    #     writer.add_scalar("loss/train",loss,epoch)
-                    #     actor.use_eps_flag=1
-                    #     total_reward=0
             else:
                 lastobs=deepcopyMat(obs)
+            if step_done>BATCHSIZE+10 :#训练过程,只在每次完成一个epoch之后进行，并不是每一步都执行
+                loss=optimizer.loss_calc()
+                loss.backward()
+                # writer.add_histogram("gradient check",actor.actor_.layer1.weight.grad, epoch)
+                optimizer.updateNetwork(0)
+                epoch+=1
+
+                optimizer.TargetNetsoftupdate(0)
+
             step_done+=1

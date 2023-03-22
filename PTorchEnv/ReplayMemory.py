@@ -10,6 +10,7 @@ Transition = namedtuple('Transition',
 class ReplayMemory(object):
 
     def __init__(self, capacity):
+        self.recordinglength=0
         self.memory = deque([], maxlen=capacity)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.empty_nextstate_flag=0
@@ -18,6 +19,7 @@ class ReplayMemory(object):
         self.memory.append(Transition(*args))
     def appendnew(self,lastobs,act,state,reward):
         #请注意，这里的act只能是动作的index，而不能够是动作本身
+        self.recordinglength+=1
         self.memory.append(Transition(TensorTypecheck(lastobs),TensorTypecheck(act),TensorTypecheck(state),TensorTypecheck(reward)))
     def sample(self, batch_size):
         return random.sample(self.memory, batch_size)

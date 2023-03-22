@@ -41,28 +41,31 @@ while True:
     action=actor.response(lastobs)
 
     observation, reward, terminated, truncated, _ = envnow.step(actor.action.item())
-    obs = torch.tensor(observation, dtype=torch.float32, device=device).unsqueeze(0)
     total_reward+=reward
+    reward = torch.tensor([reward], device=device)
     done = terminated or truncated
     if terminated:
-        # print("the action is:",action,"angle now:",obs[1,0])
         obs=None
+    else:
+        obs = torch.tensor(observation, dtype=torch.float32, device=device).unsqueeze(0)
 
 
-    replaybuff.appendnew(lastobs,actor.action,obs,int(reward))
+    replaybuff.appendnew(lastobs,actor.action,obs,reward)
     if terminated :
         state, info = envnow.reset()
         lastobs = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
         writer.add_scalar("reward",total_reward,epoch)
         epoch+=1
         total_reward=0
-        loss=optimizer.loss_calc()
-        loss.backward()
-        optimizer.updateNetwork(0)
-        optimizer.TargetNetsoftupdate(0)
-
     else:
         lastobs=deepcopyMat(obs)
+
+    loss=optimizer.loss_calc()
+    loss.backward()
+    optimizer.updateNetwork(0)
+    optimizer.TargetNetsoftupdate(0)
+
+
 
 
     step_done+=1

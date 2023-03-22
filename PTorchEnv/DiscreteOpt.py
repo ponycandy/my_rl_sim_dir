@@ -32,7 +32,7 @@ class DiscreteOpt:
         state_batch,action_batch,reward_batch,non_final_mask,non_final_next_states=self.replaybuff.get_Batch_data(self.BATCHSIZE)
         return state_batch,action_batch,reward_batch,non_final_mask,non_final_next_states
     def loss_calc(self):
-        if len(self.replaybuff.memory) < self.BATCHSIZE:
+        if  self.replaybuff.recordinglength< self.BATCHSIZE:
             self.optimizer.zero_grad()
             loss = torch.zeros(1, requires_grad=True)
             return loss
