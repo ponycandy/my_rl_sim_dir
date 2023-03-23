@@ -8,14 +8,15 @@ class PushingBoxTCP(TCPenv):
 
     def getreward(self,state,action):
         x=state[0,0]
-        if(abs(x)<1):
+        if(abs(x)<0.1):
             return 1
         return 0
     def calcobs(self,statevector):
+        statevector[0,0]=statevector[0,0]/10 #大概的范围在5以内，所以正规化一下
         return  statevector
     def Info_extract(self,statevector):
         self.steps+=1
-        if(self.steps>100):
+        if(self.steps>200):
             info="truncated"
             self.steps=0
         else:

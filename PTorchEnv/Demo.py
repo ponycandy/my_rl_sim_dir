@@ -7,8 +7,8 @@ from DDPG import DDPGagent
 from utils import *
 import os
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
-env = NormalizedEnv(gym.make("Pendulum-v0"))
-
+env = NormalizedEnv(gym.make("Pendulum-v1"))
+env2=gym.make("Pendulum-v1")
 agent = DDPGagent(env)
 noise = OUNoise(env.action_space)
 batch_size = 128
@@ -16,14 +16,15 @@ rewards = []
 avg_rewards = []
 
 for episode in range(50):
-    state = env.reset()
+    state ,infos= env2.reset()
     noise.reset()
     episode_reward = 0
 
     for step in range(500):
         action = agent.get_action(state)
         action = noise.get_action(action, step)
-        new_state, reward, done, _ = env.step(action)
+        new_state, reward, terminated, truncated ,_= env2.step(action)
+        done=terminated or truncated
         agent.memory.push(state, action, reward, new_state, done)
 
         if len(agent.memory) > batch_size:

@@ -4,6 +4,8 @@ from PTorchEnv.Prioritized_Replaybuffer import Prioritized_Replaybuffer
 from PTorchEnv.ContinueOpt import ContinueOpt
 import random
 from PyTorchTool.RLDebugger import RLDebugger
+import gymnasium as gym
+import numpy
 from PTorchEnv.matrix_copt_tool import deepcopyMat
 from tensorboardX import SummaryWriter
 from PTorchEnv.RL_parameter_calc import RL_Calculator
@@ -13,46 +15,55 @@ import torch
 from model import Critic
 from model import Actor
 from DDPG_Actor_Proxy import DDPG_Actor_Proxy
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 TIMESTAMP = "{0:%Y-%m-%dT%H-%M-%S/}".format(datetime.now())
 writer =SummaryWriter("./my_log_dir/"+TIMESTAMP)
 # ploterr=RLDebugger()
 optimizer=ContinueOpt()
-BATCHSIZE=100
+BATCHSIZE=10000
 replaybuff=ReplayMemory(BATCHSIZE)
-optimizer.set_Replaybuff(replaybuff,100,0.9,learning_rate_a=1e-3,learning_rate_c=1e-3)
-envnow=PushingBoxTCP(8001,"127.0.0.1")
+optimizer.set_Replaybuff(replaybuff,128,0.99,learning_rate_a=1e-4,learning_rate_c=1e-3)
+envnow=gym.make("Pendulum-v1")
 
 actor_proxy=DDPG_Actor_Proxy()
-actorNet=Actor(3,24,1)
-actorTarget=Actor(3,24,1)
+actorNet=Actor(3,24,1).to(device)
+actorTarget=Actor(3,24,1).to(device)
 actor_proxy.setNet(actorNet)
 actor_proxy.set_range([2],[0])
 actor_proxy.use_eps_flag=1
 
 actorTarget.load_state_dict(actorNet.state_dict())
-Criticm=Critic(4,24,1)
-CriticmTarget=Critic(4,24,1)
+Criticm=Critic(4,24,1).to(device)
+CriticmTarget=Critic(4,24,1).to(device)
 CriticmTarget.load_state_dict(Criticm.state_dict())
 
 optimizer.set_NET(actorNet,actorTarget,Criticm,CriticmTarget)
 initstate=[1,1]
-lastobs=envnow.setstate(initstate)
+state ,infos= envnow.reset()
+lastobs = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
 step_done=0
 total_reward=0
 epoch=1
 while True:
     action=actor_proxy.response(lastobs)
 
-    obs,reward,done,info=envnow.step(action)
+    observation, reward, terminated, truncated, _ = envnow.step(numpy.array(action))
     total_reward+=reward
 
-    if done or info=="speed_out":
+    if terminated:
         obs=None
-
-
+    else:
+        obs = torch.tensor(observation.transpose(), dtype=torch.float32, device=device)
     replaybuff.appendnew(lastobs,actor_proxy.action,obs,reward)
-    if done or info=="speed_out":
-        lastobs=envnow.setstate(initstate)
+    lastobs=deepcopyMat(obs)
+    if terminated or truncated:
+        state, info = envnow.reset()
+        lastobs = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
+        writer.add_scalar("reward",total_reward,epoch)
+        epoch+=1
+        # print(total_reward)
+        total_reward=0
+
     actor_loss,critic_td_error=optimizer.loss_calc()
     epoch+=1
 
@@ -60,13 +71,6 @@ while True:
     # optimizer.updateCritic(0) 否则会造成梯度的中断，故在loss_calc外面没必要再执行一次
     optimizer.SoftTargetActor(0)
     optimizer.SoftTargetCritic(0)
-
-    writer.add_histogram("Bellman",optimizer.record_expected_state_action_values, epoch)
-    writer.add_scalar("reward",total_reward,epoch)
-    writer.add_scalar("critic_td_error/train",critic_td_error,epoch)
-    writer.add_scalar("actor_loss/train",critic_td_error,epoch)
-    else:
-        lastobs=deepcopyMat(obs)
     step_done+=1
 
 

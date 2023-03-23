@@ -1,6 +1,6 @@
 #Policy gradient算法，参照DDPG实现：
 #https://github.com/sherlockHSY/Reinforcement_learning_with_pytorch/blob/90c4f302b588bbf8be7962aaaa7f61c0234fb8d9/model_free/DDPG/DDPG.py#L100
-# 已通过的测试:value_learnt,value_learnt_predictable,discount_correct,actor_trained
+# 已通过的测试:value_learnt,value_learnt_predictable,discount_correct,actor_trained,pushingboxTCP
 from PTorchEnv.Category_Func import Calc_state_value
 import torch
 import torch.optim as optim
@@ -46,7 +46,7 @@ class ContinueOpt:
         all_Q_value = self.criticNet(state_batch, all_action)
         actor_loss = -torch.mean(all_Q_value) #optimizer总是按照最小化loss的方向前进，在这里就是最大化reward
         self.optimizer_a.zero_grad()
-        actor_loss.backward(retain_graph=True)
+        actor_loss.backward()
 
         self.updateActor()
         #注意，这里不能够在外面backward，否则会和下面的backward发生计算图串联！！
