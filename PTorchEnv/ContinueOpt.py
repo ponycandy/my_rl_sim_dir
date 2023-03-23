@@ -29,6 +29,13 @@ class ContinueOpt:
         state_batch,action_batch,reward_batch,non_final_mask,non_final_next_states=self.replaybuff.get_Batch_data(self.BATCHSIZE)
         return state_batch,action_batch,reward_batch,non_final_mask,non_final_next_states
     def loss_calc(self):
+        if  self.replaybuff.recordinglength< self.BATCHSIZE:
+            self.optimizer_c.zero_grad()
+            self.optimizer_a.zero_grad()
+
+            loss1 = torch.zeros(1, requires_grad=True)
+            loss2=loss1
+            return loss1,loss2
         if(hasattr(self, 'replaybuff')):
             state_batch,action_batch,reward_batch,non_final_mask,non_final_next_states=self.get_sample()
         else:
@@ -53,7 +60,7 @@ class ContinueOpt:
                 next_state_action = self.actor_targetNet(non_final_next_states)
             #next_state_action与non_final_next_states同维度，下面的criticNet只输出非终点量的价值预测，所以不需要non_final_mask
         # 下面的式子需要补足终点量的bellman值
-            Q_value_next_state[non_final_mask] = self.critic_targetNet(non_final_next_states, next_state_action)
+                Q_value_next_state[non_final_mask] = self.critic_targetNet(non_final_next_states, next_state_action)
         else:
             pass
         q_bellman_target = reward_batch.to(torch.float32) + self.GAMA * Q_value_next_state  #对于terminal state需要补全为0

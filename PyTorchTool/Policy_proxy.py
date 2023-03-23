@@ -30,7 +30,6 @@ class Policy_Proxy():
                 action_mean = sum(action_1,[])
                 act_array=np.random.multivariate_normal(action_mean, self.varriance)
                 noisy_act= np.clip(act_array, self.lower_ib,self.upper_ib)
-                print(noisy_act)
                 self.action=TensorTypecheck(noisy_act).to(self.device)
                 self.action=self.action.to(torch.float32)
                 real_action=torch.tensor(noisy_act).to(self.device)*self.scale.t()+self.bias_range.t()
