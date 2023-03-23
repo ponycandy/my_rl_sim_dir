@@ -14,20 +14,16 @@ class PushingBoxTCP(TCPenv):
     def calcobs(self,statevector):
         return  statevector
     def Info_extract(self,statevector):
-        info="fine"
-        if(abs(statevector[0,0])>5):
-            info="speed_out"
+        self.steps+=1
+        if(self.steps>100):
+            info="truncated"
+            self.steps=0
+        else:
+            info="notdone"
         return info
     def missiondonejudge(self,statevector):
         done=0
-        self.steps+=1
         if(abs(statevector[0,0])>5):
-            info="speed_out"
-            done=1
-            self.steps=0
-            return done
-        if(self.steps>100):
-            info="speed_out"
             done=1
             self.steps=0
             return done

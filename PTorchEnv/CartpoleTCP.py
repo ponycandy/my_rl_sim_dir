@@ -30,27 +30,24 @@ class CartpoleTCP(TCPenv):
         if(phi<-3.1415926535):
             phi=phi+2*3.1415926535
         statevector[2,0]=phi
+        # 摆角normalized到-pi到pi
+        # 考虑到数字范围都不大，在-5到5之间，我想应该不用norm吧....
         return  statevector[0:4,:]
     def Info_extract(self,statevector):
-        info="fine"
-        # if(abs(statevector[0,0])>5):
-        #     info="speed_out"
+        self.steps+=1
+        if(self.steps>500):
+            info="truncated"
+            self.steps=0
+        else:
+            info="notdone"
         return info
     def missiondonejudge(self,statevector):
         done=0
-        self.steps+=1
         if(abs(statevector[2,0])>0.2):
-            info="speed_out"
-            done=1
-            self.steps=0
-            return done
-        if(self.steps>500):#step步数最好不要大于采样数，因为DQN是从终点开始学起的，想办法加大终点被采样的概率吧
-            info="speed_out"
             done=1
             self.steps=0
             return done
         if(abs(statevector[0,0])>5):#step步数最好不要大于采样数，因为DQN是从终点开始学起的，想办法加大终点被采样的概率吧
-            info="speed_out"
             done=1
             self.steps=0
             return done

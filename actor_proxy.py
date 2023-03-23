@@ -40,11 +40,10 @@ class actor_proxy(Category_proxy):
         if num==0:
         #左移
             force=100
+            return force
         if num==1:
             force=-100
-        if num==2:
-            force=0
-        return force
+            return force
     def deepCopy(self):
         target_net_proxy= copy.deepcopy(self)
         target_net_proxy.actor_.load_state_dict(self.actor_.state_dict())
