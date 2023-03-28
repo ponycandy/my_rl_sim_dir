@@ -30,7 +30,7 @@ actorNet=Actor(2,24,1).to(device)
 actorTarget=Actor(2,24,1).to(device)
 actor_proxy.setNet(actorNet)
 actor_proxy.set_range([10],[0])
-actor_proxy.use_eps_flag=1
+actor_proxy.use_eps_flag=0
 
 actorTarget.load_state_dict(actorNet.state_dict())
 Criticm=Critic(3,24,1).to(device)
@@ -38,7 +38,7 @@ CriticmTarget=Critic(3,24,1).to(device)
 CriticmTarget.load_state_dict(Criticm.state_dict())
 
 optimizer.set_NET(actorNet,actorTarget,Criticm,CriticmTarget)
-initstate=[1,1]
+initstate=[1,0]
 lastobs=envnow.setstate(initstate)
 step_done=0
 total_reward=0
@@ -58,7 +58,7 @@ while True:
         lastobs=envnow.setstate(initstate)
         writer.add_scalar("reward",total_reward,epoch)
         epoch+=1
-        print(total_reward)
+        # print(total_reward)
         total_reward=0
 
     actor_loss,critic_td_error=optimizer.loss_calc()

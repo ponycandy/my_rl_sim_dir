@@ -14,6 +14,7 @@ class ReplayMemory(object):
         self.memory = deque([], maxlen=capacity)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.empty_nextstate_flag=0
+        self.PPO=0
     def push(self, *args):
         """Save a transition"""
         self.memory.append(Transition(*args))
@@ -26,6 +27,9 @@ class ReplayMemory(object):
 
     def __len__(self):
         return len(self.memory)
+    def setMode(self,mode):
+        if mode=="PPO":
+            self.PPO=1
     def get_Batch_data(self,BATCH_SIZE):
         transitions = self.sample(BATCH_SIZE)
         batch = Transition(*zip(*transitions))

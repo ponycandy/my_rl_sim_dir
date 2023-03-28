@@ -7,12 +7,13 @@ class PushingBoxTCP(TCPenv):
         self.steps=0
 
     def getreward(self,state,action):
-        x=state[0,0]
-        if(abs(x)<0.1):
-            return 1
-        return 0
+        if(abs(state[0,0]<1)):
+            reward=1
+        else:
+            reward=0
+        return reward
     def calcobs(self,statevector):
-        statevector[0,0]=statevector[0,0]/10 #大概的范围在5以内，所以正规化一下
+        # statevector[0,0]=statevector[0,0]/10 #大概的范围在5以内，所以正规化一下
         return  statevector
     def Info_extract(self,statevector):
         self.steps+=1
@@ -26,6 +27,6 @@ class PushingBoxTCP(TCPenv):
         done=0
         if(abs(statevector[0,0])>5):
             done=1
-            self.steps=0
             return done
         return done
+# 仿照penduleum的奖励

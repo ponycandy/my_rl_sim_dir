@@ -2,6 +2,7 @@ import os
 import glob
 import time
 from datetime import datetime
+from PTorchEnv.PPO_Buffer import PPO_Buffer
 
 import torch
 import numpy as np
@@ -142,8 +143,9 @@ def train():
     ################# training procedure ################
 
     # initialize a PPO agent
-    ppo_agent = PPO(state_dim, action_dim, lr_actor, lr_critic, gamma, K_epochs, eps_clip, has_continuous_action_space, action_std)
-
+    replaybuff=PPO_Buffer()
+    ppo_agent = PPO(state_dim, action_dim, lr_actor, lr_critic, gamma, K_epochs, eps_clip, has_continuous_action_space,action_std)
+    ppo_agent.set_Replaybuff(replaybuff,gamma,lr_actor,lr_critic)
     # track total training time
     start_time = datetime.now().replace(microsecond=0)
     print("Started training at (GMT) : ", start_time)
@@ -168,18 +170,24 @@ def train():
     while time_step <= max_training_timesteps:
 
         state = env.reset()
-        state=state[0]
+        lastobs=state[0]
         current_ep_reward = 0
 
         for t in range(1, max_ep_len+1):
 
             # select action with policy
-            action = ppo_agent.select_action(state)
-            state, reward, done, _ ,_= env.step(action)
+            action = ppo_agent.select_action(lastobs)
+            obs, reward, done, _ ,_= env.step(action)
 
             # saving reward and is_terminals
-            ppo_agent.buffer.rewards.append(reward)
-            ppo_agent.buffer.is_terminals.append(done)
+            # replaybuff.appendnew()
+            replaybuff.appendnew(lastobs,ppo_agent.action,obs,reward)
+            lastobs=obs
+            if done:
+                replaybuff.ResetNotify()
+            else:
+                replaybuff.is_terminals.append(False)
+            # ppo_agent.buffer.is_terminals.append(done)
 
             time_step +=1
             current_ep_reward += reward

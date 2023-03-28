@@ -21,7 +21,7 @@ optimizer.set_Replaybuff(replaybuff,128,0.9,1e-4)
 envnow=CartpoleTCP(8001,"127.0.0.1")
 actor=actor_proxy()
 actor.actor_.writer=writer
-actor.use_eps_flag=1
+actor.use_eps_flag=0
 actor.EPS_DECAY=1000
 actor_target=actor_proxy()
 actor_target.actor_.load_state_dict(actor.actor_.state_dict())
