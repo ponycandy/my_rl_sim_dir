@@ -3,7 +3,9 @@ import glob
 import time
 from datetime import datetime
 from PTorchEnv.PPO_Buffer import PPO_Buffer
-
+from PTorchEnv.PPO_Actor_Proxy import PPO_Actor_Proxy
+from PTorchEnv.model import Actor_Softmax,Critic_PPO,Actor
+from PTorchEnv.Typechecker import TensorTypecheck
 import torch
 import numpy as np
 
@@ -19,7 +21,7 @@ def train():
     ####### initialize environment hyperparameters ######
     env_name = "CartPole-v1"
 
-    has_continuous_action_space = False  # continuous action space; else discrete
+    has_continuous_action_space = True  # continuous action space; else discrete
 
     max_ep_len = 1000                   # max timesteps in one episode
     max_training_timesteps = int(3e6)   # break training loop if timeteps > max_training_timesteps
@@ -144,8 +146,18 @@ def train():
 
     # initialize a PPO agent
     replaybuff=PPO_Buffer()
-    ppo_agent = PPO(state_dim, action_dim, lr_actor, lr_critic, gamma, K_epochs, eps_clip, has_continuous_action_space,action_std)
-    ppo_agent.set_Replaybuff(replaybuff,gamma,lr_actor,lr_critic)
+    optimizer = PPO()
+    optimizer.set_Replaybuff(replaybuff,gamma,lr_actor,lr_critic)
+
+    actor_proxy=PPO_Actor_Proxy()
+    actorNet=Actor(4,24,2)
+    criticM=Critic_PPO(4,24,1)
+    actor_proxy.setNet(actorNet,criticM)
+    actor_proxy.set_action_dim(2)
+    actor_proxy.setActFlag("Discrete")
+    actor_proxy.set_range([1,1],[0,0])
+    optimizer.setNet(actorNet,criticM,actor_proxy)
+
     # track total training time
     start_time = datetime.now().replace(microsecond=0)
     print("Started training at (GMT) : ", start_time)
@@ -170,35 +182,25 @@ def train():
     while time_step <= max_training_timesteps:
 
         state = env.reset()
-        lastobs=state[0]
+        lastobs=TensorTypecheck(state[0])
         current_ep_reward = 0
 
         for t in range(1, max_ep_len+1):
 
             # select action with policy
-            action = ppo_agent.select_action(lastobs)
+            action=actor_proxy.response(lastobs)
             obs, reward, done, _ ,_= env.step(action)
 
             # saving reward and is_terminals
             # replaybuff.appendnew()
-            replaybuff.appendnew(lastobs,ppo_agent.action,obs,reward)
-            lastobs=obs
+            replaybuff.appendnew(lastobs,actor_proxy.action,obs,reward)
+            lastobs=TensorTypecheck(obs)
             if done:
-                replaybuff.ResetNotify()
-            else:
-                replaybuff.is_terminals.append(False)
-            # ppo_agent.buffer.is_terminals.append(done)
+                replaybuff.ResetNotify()#only notify once!!
 
             time_step +=1
             current_ep_reward += reward
-
-            # update PPO agent
-            if time_step % update_timestep == 0:
-                ppo_agent.update()
-
-            # if continuous action space; then decay action std of ouput action distribution
-            if has_continuous_action_space and time_step % action_std_decay_freq == 0:
-                ppo_agent.decay_action_std(action_std_decay_rate, min_action_std)
+            optimizer.update()
 
             # log in logging file
             if time_step % log_freq == 0:
@@ -229,7 +231,6 @@ def train():
             if time_step % save_model_freq == 0:
                 print("--------------------------------------------------------------------------------------------")
                 print("saving model at : " + checkpoint_path)
-                ppo_agent.save(checkpoint_path)
                 print("model saved")
                 print("Elapsed Time  : ", datetime.now().replace(microsecond=0) - start_time)
                 print("--------------------------------------------------------------------------------------------")

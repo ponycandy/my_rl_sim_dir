@@ -29,7 +29,7 @@ def sizecheck(mat):
             return mat0
         else:
             return mat
-    if len(mat.shape)==1:
+    if len(mat.shape)==1:  #输出为列向量
         mat0=mat.unsqueeze(1)
         return mat0
 def double_typecheck(value):

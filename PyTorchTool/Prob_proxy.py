@@ -9,11 +9,14 @@ class Prob_Proxy():
     def __init__(self):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.step=1
-        self.decayInterval=1000
+        self.decayInterval=200000
         self.act_flag=0
-        self.action=[0,0,0]
+        self.action=[0,0,0,0]
         self.use_eps_flag=0
         self.decay_Rate=0.995
+    def setNet(self,actor,critic):
+        self.actor=actor.to(self.device)
+        self.critic=critic.to(self.device)
     def continuous_response(self,vector):
         self.step+=1
         if self.step%self.decayInterval==0:
@@ -24,6 +27,7 @@ class Prob_Proxy():
         mean = self.actor(vector)
         # Create our Multivariate Normal Distribution
         dist = MultivariateNormal(mean, self.cov_mat)
+        state_val = self.critic(vector)
         # Sample an action from the distribution and get its log prob
         action = dist.sample()
         log_prob = dist.log_prob(action)
@@ -36,20 +40,23 @@ class Prob_Proxy():
         # start later down the line.
         self.action[0]=action  #动作值
         self.action[1]=log_prob  #动作概率值
-        self.action[2]=dist  #概率分布函数
+        self.action[2]=state_val  #估计所得的价值
+        self.action[3]=dist#分布
         return self.scale_action(action)
     def Discrete_response(self,vector):
         action_probs = self.actor(vector)
         dist = Categorical(action_probs)
         action = dist.sample()
+        state_val = self.critic(vector)
         action_logprob = dist.log_prob(action)
 
         self.action[0]=action  #动作值
         self.action[1]=action_logprob  #动作概率值
-        self.action[2]=dist  #概率分布函数
+        self.action[2]=state_val  #概率分布函数
+        self.action[3]=dist #分布
         return self.chooseaction_pre(action)
     def predict(self,vector):
-        vector=TensorTypecheck(vector).to(torch.float32)
+        vector=TensorTypecheck(vector).to(torch.float32).to(self.device)
         with torch.no_grad():
             if self.act_flag==1:#连续
 
@@ -58,9 +65,6 @@ class Prob_Proxy():
             else:
                 act=self.Discrete_response(vector)
                 return act
-
-    def setNet(self,actorNet):
-        self.actor=actorNet
     def chooseaction_pre(self,action):
         if(action.shape[0]>1):
             return -1
@@ -101,10 +105,11 @@ class Prob_Proxy():
             self.act_flag=1
     def scale_action(self,act):
 
-        real_action=act*self.scale.t()+self.bias_range.t()
-        real_action=torch.clamp(real_action,torch.cat( self.upper_bound ), torch.cat(self.lower_bound))
+        real_action=act*self.scale+self.bias_range
+        real_action=torch.clamp(real_action,torch.cat( self.lower_bound ), torch.cat(self.upper_bound))
 
         return real_action.cpu()
     def cov_decay(self):
 
         self.cov_mat = self.decay_Rate*self.cov_mat
+        #与标准不一样，我们依然采用乘法差，减小不必要的负值和最小值判定

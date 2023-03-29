@@ -2,6 +2,7 @@ from PTorchEnv.Typechecker import TensorTypecheck
 import torch
 class PPO_Buffer():
     def __init__(self):
+        self.index=0
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.actions = []
         self.states = []
@@ -20,8 +21,9 @@ class PPO_Buffer():
         self.logprobs.append(real_action_log)
         self.state_values.append(state_eval)
         self.rewards.append(reward)
+        self.is_terminals.append(False)
     def ResetNotify(self):
-        self.is_terminals.append(True)
+        self.is_terminals[-1]=True#将最后一项改为True
     def clear(self):
         del self.actions[:]
         del self.states[:]
