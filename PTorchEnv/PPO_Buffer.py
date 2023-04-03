@@ -34,6 +34,7 @@ class PPO_Buffer():
     def get_Batch_data(self):
         old_states = torch.squeeze(torch.stack(self.states, dim=0)).detach().to(self.device)
         old_actions = torch.squeeze(torch.stack(self.actions, dim=0)).detach().to(self.device)
+        old_actions=TensorTypecheck(old_actions)
         old_logprobs = torch.squeeze(torch.stack(self.logprobs, dim=0)).detach().to(self.device)
         old_state_values = torch.squeeze(torch.stack(self.state_values, dim=0)).detach().to(self.device)
         return old_states,old_actions,old_logprobs,old_state_values

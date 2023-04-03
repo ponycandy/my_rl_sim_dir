@@ -7,7 +7,7 @@ class PushingBoxTCP(TCPenv):
         self.steps=0
 
     def getreward(self,state,action):
-        if(abs(state[0,0]<1)):
+        if(abs(state[0,0])<1):
             reward=1
         else:
             reward=0
@@ -27,6 +27,7 @@ class PushingBoxTCP(TCPenv):
         done=0
         if(abs(statevector[0,0])>5):
             done=1
+            self.steps=0
             return done
         return done
 # 仿照penduleum的奖励

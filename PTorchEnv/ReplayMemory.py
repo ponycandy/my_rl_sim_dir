@@ -20,8 +20,17 @@ class ReplayMemory(object):
         self.memory.append(Transition(*args))
     def appendnew(self,lastobs,act,state,reward):
         #请注意，这里的act只能是动作的index，而不能够是动作本身
+        #自动搞定设备问题
+        lastobs=TensorTypecheck(lastobs).to(self.device)
+        act=TensorTypecheck(act).to(self.device)
+        state=TensorTypecheck(state)
+        if state==None:
+            pass
+        else:
+            state=state.to(self.device)
+        reward=TensorTypecheck(reward)
         self.recordinglength+=1
-        self.memory.append(Transition(TensorTypecheck(lastobs),TensorTypecheck(act),TensorTypecheck(state),TensorTypecheck(reward)))
+        self.memory.append(Transition(lastobs,act,state,reward))
     def sample(self, batch_size):
         return random.sample(self.memory, batch_size)
 

@@ -19,6 +19,8 @@ def TensorTypecheck(vector):##始终使得宽大于长
     if isinstance(vector,np.ndarray):
         vector=torch.from_numpy(vector)
         return sizecheck(vector)
+    if vector==None:
+        return None
 
     # observation, reward, done, info=self.pointee.stepin(action)
     # return observation, reward, done, info
@@ -31,7 +33,8 @@ def sizecheck(mat):
             return mat
     if len(mat.shape)==1:  #输出为列向量
         mat0=mat.unsqueeze(1)
-        return mat0
+        return mat0.t()
+#     保持一致性，总是输出列数大于行数的2D tensor
 def double_typecheck(value):
     if isinstance(value,torch.Tensor):
         if len(value.shape)==2:

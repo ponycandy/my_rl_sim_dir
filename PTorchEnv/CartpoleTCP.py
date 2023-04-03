@@ -1,11 +1,13 @@
 from TCPenv import TCPenv
 import random
+from PTorchEnv.StateNormalize import WelFord_Normalizer
 class CartpoleTCP(TCPenv):
     def __init__(self,port,IP):
         super(CartpoleTCP, self).__init__(port,IP)
         # self.set_pointee(self)
         self.set_simer(self)
         self.steps=0
+        self.normalizer=WelFord_Normalizer()
 
     def getreward(self,state,action):
         phi=state[2,0]
@@ -24,15 +26,12 @@ class CartpoleTCP(TCPenv):
     def calcobs(self,statevector):
         #这一次是保持0位，所以无需处置,但是，不能够一致输出
         #这个函数总是需要考虑到statevector最后一位是标志位的情况
-        phi=statevector[2,0]
-        if(phi>3.1415926535):
-            phi=2*3.1415926535-phi
-        if(phi<-3.1415926535):
-            phi=phi+2*3.1415926535
-        statevector[2,0]=phi
+
+        new_vec=statevector
+        # new_vec=self.normalizer.normalize_state(new_vec)
         # 摆角normalized到-pi到pi
         # 考虑到数字范围都不大，在-5到5之间，我想应该不用norm吧....
-        return  statevector[0:4,:]
+        return  new_vec[0:4,:]
     def Info_extract(self,statevector):
         self.steps+=1
         if(self.steps>500):

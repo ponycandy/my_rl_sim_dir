@@ -1,10 +1,9 @@
 from actor_proxy import actor_proxy
 import gymnasium as gym
-from PTorchEnv.CartpoleTCP import CartpoleTCP
+from PTorchEnv.PushingBoxTCP import PushingBoxTCP
 from PTorchEnv.ReplayMemory import ReplayMemory
 from PTorchEnv.Prioritized_Replaybuffer import Prioritized_Replaybuffer
 from PTorchEnv.DiscreteOpt import DiscreteOpt
-from PTorchEnv.Typechecker import TensorTypecheck
 import random
 from PyTorchTool.RLDebugger import RLDebugger
 from PTorchEnv.matrix_copt_tool import deepcopyMat
@@ -18,11 +17,12 @@ TIMESTAMP = "{0:%Y-%m-%dT%H-%M-%S/}".format(datetime.now())
 writer =SummaryWriter("./my_log_dir/"+TIMESTAMP)
 # ploterr=RLDebugger()
 optimizer=DiscreteOpt()
-BATCHSIZE=10000
+BATCHSIZE=1000
 replaybuff=ReplayMemory(BATCHSIZE)
-optimizer.set_Replaybuff(replaybuff,128,0.99,1e-4)
-# envnow=CartpoleTCP(8001,"127.0.0.1")
-envnow = gym.make("CartPole-v1")
+optimizer.set_Replaybuff(replaybuff,128,0.9,1e-4)
+envnow=PushingBoxTCP(8001,"127.0.0.1")
+
+
 actor=actor_proxy()
 actor.actor_.writer=writer
 actor.use_eps_flag=1
@@ -30,18 +30,19 @@ actor.EPS_DECAY=1000
 actor_target=actor_proxy()
 actor_target.actor_.load_state_dict(actor.actor_.state_dict())
 optimizer.set_NET(actor.actor,actor_target.actor)
-initstate=[0,0, 0.2*(random.random()-0.5),0]
+initstate=[1,1]
 # initstate=[0,0,0.5*(0.1-0.5),0]
 
-state,info= envnow.reset()
-lastobs = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
+state= envnow.setstate(initstate)
+# state,info=envnow.reset()
+lastobs = state
 step_done=0
 total_reward=0
 epoch=1
 while True:
     action=actor.response(lastobs)
 
-    obs,reward,done,info,_= envnow.step(action)
+    obs,reward,done,info= envnow.step(action)
     total_reward+=reward
     reward = torch.tensor([reward], device=device)
     if done:
@@ -51,10 +52,10 @@ while True:
 
 
     replaybuff.appendnew(lastobs,actor.action,obs,reward)
-    if done or info:
-        initstate=[0,0, 0.2*(random.random()-0.5),0]
-        state,info= envnow.reset()
-        lastobs = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
+    if done or info=="truncated":
+        initstate=[1,1]
+        state,info= envnow.setstate(initstate)
+        lastobs = state
         writer.add_scalar("reward",total_reward,epoch)
         epoch+=1
         total_reward=0

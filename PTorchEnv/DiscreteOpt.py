@@ -2,6 +2,8 @@
 #即agent输出为各个动作的value值,agent是一个value based的离散动作智能体
 #该算法默认使用的优化准则：1.targetNet准则 2.off-policy准则
 #要求以下API:loss=Optimizer.losscalc();Optimizer.updateNetwork(int update_method)
+# reference:https://pytorch.org/tutorials/intermediate/reinforcement_q_learning.html
+
 from PTorchEnv.Category_Func import Calc_state_value
 import torch
 import torch.optim as optim
