@@ -31,7 +31,6 @@ actor_target=actor_proxy()
 actor_target.actor_.load_state_dict(actor.actor_.state_dict())
 optimizer.set_NET(actor.actor,actor_target.actor)
 initstate=[0,0, 0.2*(random.random()-0.5),0]
-# initstate=[0,0,0.5*(0.1-0.5),0]
 
 state,info= envnow.reset()
 lastobs = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)

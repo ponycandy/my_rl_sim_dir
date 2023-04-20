@@ -20,7 +20,7 @@ writer =SummaryWriter("./my_log_dir/"+TIMESTAMP)
 optimizer=DiscreteOpt()
 BATCHSIZE=10000
 replaybuff=ReplayMemory(BATCHSIZE)
-optimizer.set_Replaybuff(replaybuff,128,0.99,1e-4)
+optimizer.set_Replaybuff(replaybuff,256,0.99,1e-4)
 envnow=CartpoleTCP(8001,"127.0.0.1")
 # envnow = gym.make("CartPole-v1")
 actor=actor_proxy()
@@ -43,21 +43,26 @@ while True:
     total_reward+=reward
     reward = torch.tensor([reward], device=device)
     if done:
+        if reward==1:
+            print("terminated but reward is 1")
         obs=None
-    else:
-        pass
 
+    else:
+        if reward==0:
+            print("not terminated but got reward 0")
 
     replaybuff.appendnew(lastobs,actor.action,obs,reward)
     if done or info=="truncated":
         initstate=[0,0, 0.2*(random.random()-0.5),0]
         lastobs= envnow.setstate(initstate)
         writer.add_scalar("reward",total_reward,epoch)
+        if info=="truncated" and reward==0:
+            print("Truncated but reward is 0")
         epoch+=1
         total_reward=0
     else:
         lastobs=deepcopyMat(obs)
-
+#现在，我想要借助理论知识，寻找一下可能的异常，用来验证我们的理论知识是正确的
     loss=optimizer.loss_calc()
     loss.backward()
     optimizer.updateNetwork(0)
