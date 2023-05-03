@@ -15,27 +15,30 @@ import torch
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 RL_logger=RL_Calculator()
 TIMESTAMP = "{0:%Y-%m-%dT%H-%M-%S/}".format(datetime.now())
-writer =SummaryWriter("./my_log_dir/"+TIMESTAMP)
+
 # ploterr=RLDebugger()
 optimizer=DiscreteOpt()
 BATCHSIZE=10000
 replaybuff=ReplayMemory(BATCHSIZE)
 optimizer.set_Replaybuff(replaybuff,256,0.99,1e-4)
-envnow=CartpoleTCP(8001,"127.0.0.1")
-# envnow = gym.make("CartPole-v1")
+
 actor=actor_proxy()
-actor.actor_.writer=writer
+writer =SummaryWriter("./my_log_dir/"+TIMESTAMP)
+# actor.actor_=torch.load('pretrain_cartpole.pt')
+# actor.setNet(actor.actor_)
 actor.use_eps_flag=1
 actor.EPS_DECAY=1000
 actor_target=actor_proxy()
 actor_target.actor_.load_state_dict(actor.actor_.state_dict())
 optimizer.set_NET(actor.actor,actor_target.actor)
-initstate=[0,0, 0.2*(random.random()-0.5),0]
-
+initstate=[3.1415926535+ 0.2*(random.random()-0.5),0,0,0]
+envnow=CartpoleTCP(8001,"127.0.0.1")
 lastobs= envnow.setstate(initstate)
 step_done=0
 total_reward=0
 epoch=1
+
+
 while True:
     action=actor.response(lastobs)
 
@@ -53,11 +56,8 @@ while True:
 
     replaybuff.appendnew(lastobs,actor.action,obs,reward)
     if done or info=="truncated":
-        initstate=[0,0, 0.2*(random.random()-0.5),0]
         lastobs= envnow.setstate(initstate)
         writer.add_scalar("reward",total_reward,epoch)
-        if info=="truncated" and reward==0:
-            print("Truncated but reward is 0")
         epoch+=1
         total_reward=0
     else:

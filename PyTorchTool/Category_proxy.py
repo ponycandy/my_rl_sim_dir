@@ -55,6 +55,5 @@ class Category_proxy():
         self.env=envnow
     def random_action(self):#提供外部一个使用完全随机运动的接口
         return random.randint(0,self.actions-1)
-    def save_model(self,agentid):
-        name="./agents_dir/agent_id_is_"+str(agentid)+"_"
-        self.filemanage.save_model(self.actor,name)
+    def save_now(self,name):
+        torch.save( self.actor, name+'.pt')

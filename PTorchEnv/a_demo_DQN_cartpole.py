@@ -15,7 +15,7 @@ import torch
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 RL_logger=RL_Calculator()
 TIMESTAMP = "{0:%Y-%m-%dT%H-%M-%S/}".format(datetime.now())
-writer =SummaryWriter("./my_log_dir/"+TIMESTAMP)
+# writer =SummaryWriter("./my_log_dir/"+TIMESTAMP)
 # ploterr=RLDebugger()
 optimizer=DiscreteOpt()
 BATCHSIZE=10000
@@ -24,7 +24,7 @@ optimizer.set_Replaybuff(replaybuff,128,0.99,1e-4)
 # envnow=CartpoleTCP(8001,"127.0.0.1")
 envnow = gym.make("CartPole-v1")
 actor=actor_proxy()
-actor.actor_.writer=writer
+# actor.actor_.writer=writer
 actor.use_eps_flag=1
 actor.EPS_DECAY=1000
 actor_target=actor_proxy()
@@ -37,6 +37,8 @@ lastobs = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
 step_done=0
 total_reward=0
 epoch=1
+
+
 while True:
     action=actor.response(lastobs)
 
@@ -45,6 +47,7 @@ while True:
     reward = torch.tensor([reward], device=device)
     if done:
         obs=None
+
     else:
         pass
 
@@ -54,7 +57,7 @@ while True:
         initstate=[0,0, 0.2*(random.random()-0.5),0]
         state,info= envnow.reset()
         lastobs = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
-        writer.add_scalar("reward",total_reward,epoch)
+        # writer.add_scalar("reward",total_reward,epoch)
         epoch+=1
         total_reward=0
     else:
@@ -64,6 +67,9 @@ while True:
     loss.backward()
     optimizer.updateNetwork(0)
     optimizer.TargetNetsoftupdate(0)
+    if(epoch>600):
+        actor.save_now("pretrain_cartpole")
+        break
 
 
 

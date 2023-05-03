@@ -23,7 +23,9 @@ class actor_proxy(Category_proxy):
         super(actor_proxy, self).__init__(2) #首先调用父类的初始化函数进行初始化
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.actor_=DQN(4,2).to(self.device)
+        # self.actor_=torch.load('pretrain_cartpole.pt').to(self.device)
         self.setNet(self.actor_)
+
         self.writer=0
         pass
     def set_member(self):
@@ -39,10 +41,10 @@ class actor_proxy(Category_proxy):
     def chooseaction(self,num):
         if num==0:
         #左移
-            force=50
+            force=-10
             return force
         if num==1:
-            force=-50
+            force=10
             return force
     def deepCopy(self):
         target_net_proxy= copy.deepcopy(self)

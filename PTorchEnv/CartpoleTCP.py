@@ -19,6 +19,10 @@ class CartpoleTCP(TCPenv):
         #这个函数总是需要考虑到statevector最后一位是标志位的情况
 
         new_vec=statevector
+        new_vec[0,0]=statevector[2,0]
+        new_vec[1,0]=-statevector[0,0]+3.1415926535
+        new_vec[2,0]=statevector[3,0]
+        new_vec[3,0]=statevector[1,0]
         # new_vec=self.normalizer.normalize_state(new_vec)
         # 摆角normalized到-pi到pi
         # 考虑到数字范围都不大，在-5到5之间，我想应该不用norm吧....
@@ -33,11 +37,11 @@ class CartpoleTCP(TCPenv):
         return info
     def missiondonejudge(self,statevector):
         self.done=0
-        if(abs(statevector[2,0])>0.2):
+        if(abs(statevector[0,0]-3.1415926535)>0.2):
             self.done=1
             self.steps=0
             return self.done
-        if(abs(statevector[0,0])>5):#step步数最好不要大于采样数，因为DQN是从终点开始学起的，想办法加大终点被采样的概率吧
+        if(abs(statevector[2,0])>5):#step步数最好不要大于采样数，因为DQN是从终点开始学起的，想办法加大终点被采样的概率吧
             self.done=1
             self.steps=0
             return self.done
