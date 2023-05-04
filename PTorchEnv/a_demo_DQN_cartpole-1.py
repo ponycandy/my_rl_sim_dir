@@ -10,11 +10,12 @@ from PyTorchTool.RLDebugger import RLDebugger
 from PTorchEnv.matrix_copt_tool import deepcopyMat
 from tensorboardX import SummaryWriter
 from PTorchEnv.RL_parameter_calc import RL_Calculator
+from PyTorchTool.Boardlogger import Boardlogger
 from datetime import datetime
 import torch
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 RL_logger=RL_Calculator()
-TIMESTAMP = "{0:%Y-%m-%dT%H-%M-%S/}".format(datetime.now())
+
 
 # ploterr=RLDebugger()
 optimizer=DiscreteOpt()
@@ -23,7 +24,7 @@ replaybuff=ReplayMemory(BATCHSIZE)
 optimizer.set_Replaybuff(replaybuff,256,0.99,1e-4)
 
 actor=actor_proxy()
-writer =SummaryWriter("./my_log_dir/"+TIMESTAMP)
+
 # actor.actor_=torch.load('pretrain_cartpole.pt')
 # actor.setNet(actor.actor_)
 actor.use_eps_flag=1
@@ -31,14 +32,13 @@ actor.EPS_DECAY=1000
 actor_target=actor_proxy()
 actor_target.actor_.load_state_dict(actor.actor_.state_dict())
 optimizer.set_NET(actor.actor,actor_target.actor)
-initstate=[3.1415926535+ 0.2*(random.random()-0.5),0,0,0]
 envnow=CartpoleTCP(8001,"127.0.0.1")
-lastobs= envnow.setstate(initstate)
+lastobs= envnow.randominit()
 step_done=0
 total_reward=0
 epoch=1
 
-
+logger=Boardlogger()
 while True:
     action=actor.response(lastobs)
 
@@ -56,8 +56,8 @@ while True:
 
     replaybuff.appendnew(lastobs,actor.action,obs,reward)
     if done or info=="truncated":
-        lastobs= envnow.setstate(initstate)
-        writer.add_scalar("reward",total_reward,epoch)
+        lastobs= envnow.randominit()
+        logger.log_per_step_scalr(total_reward,"reward")
         epoch+=1
         total_reward=0
     else:

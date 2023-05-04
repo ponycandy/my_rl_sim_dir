@@ -19,10 +19,6 @@ class CartpoleTCP(TCPenv):
         #这个函数总是需要考虑到statevector最后一位是标志位的情况
 
         new_vec=statevector
-        new_vec[0,0]=statevector[2,0]
-        new_vec[1,0]=-statevector[0,0]+3.1415926535
-        new_vec[2,0]=statevector[3,0]
-        new_vec[3,0]=statevector[1,0]
         # new_vec=self.normalizer.normalize_state(new_vec)
         # 摆角normalized到-pi到pi
         # 考虑到数字范围都不大，在-5到5之间，我想应该不用norm吧....
@@ -46,7 +42,7 @@ class CartpoleTCP(TCPenv):
             self.steps=0
             return self.done
         return self.done
-    def randominit(self):
-        initstate=[0,0,0.1,0]
-        lastobs=self.setstate(initstate)
-        return lastobs
+    def randonsample(self):
+
+        initstate=[3.1415926535+ 0.2*(random.random()-0.5),0,0,0]
+        return initstate

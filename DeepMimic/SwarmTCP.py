@@ -21,7 +21,7 @@ class SwarmTCP(TCPenv):
     def Info_extract(self,statevector):
         maximum_error=statevector[2,5]
         self.steps+=1
-        if(maximum_error<-300):#或许不应该设置最大步数,奖励类比pendulum
+        if(maximum_error<-3000):#或许不应该设置最大步数,奖励类比pendulum
             self.done=1
         else:
             self.done=0
@@ -35,4 +35,6 @@ class SwarmTCP(TCPenv):
         self.Matadatamanager.sendMat(state)
         if(self.Matdatapointer.is_pudated()):##callback called
             callbackinfo=self.Matdatapointer.getdata()
-            return callbackinfo
+            return self.calcobs(callbackinfo)
+    def randonsample(self):
+        pass #do nothing here

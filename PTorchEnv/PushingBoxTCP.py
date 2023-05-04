@@ -31,3 +31,5 @@ class PushingBoxTCP(TCPenv):
             return done
         return done
 # 仿照penduleum的奖励
+    def randonsample(self):
+        pass

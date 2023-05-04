@@ -11,7 +11,7 @@ class DQN_Trial(Trial_base):
         self.inputnum_int=inputnum_int
         self.outputnum_int=outputnum_int
         self.output_act_list=output_act_list
-        self.Batchsize=1000#default ,can be changed
+        self.Batchsize=10000#default ,can be changed
         self.trainingbatch=250#default,can be changed
         self.set_pointee(self)
     def set_external_command(self,command_body):
@@ -25,7 +25,7 @@ class DQN_Trial(Trial_base):
         #允许我们实时（在训练中）调整参数（如探索率），而不只是在每一轮
 # 训练结束后才重调参数，所以，目前的技术状态只是一种中间态，我们可以将这项技术
 # 与实时参数调节技术相结合，极大提高系统的产出效率
-        num_layers = trial.suggest_int("num_layers", 1, 3)#神经元的总层次数目
+        num_layers = trial.suggest_int("num_layers", 4, 8)#神经元的总层次数目
         learning_rate = trial.suggest_float("learning_rate", 1e-5, 1e-2, log=True)#学习率
         EPS_DECAY=trial.suggest_int("EPS_DECAY", 1000, 10000, log=True)#贪心衰减率
         args={}
@@ -34,7 +34,7 @@ class DQN_Trial(Trial_base):
         args["learning_rate"]=learning_rate
         args["EPS_DECAY"]=EPS_DECAY
         for i in range(num_layers):
-            n_units = trial.suggest_int("n_units_l{}".format(i), 4, 128, log=True)
+            n_units = trial.suggest_int("n_units_l{}".format(i), 25, 128, log=True)
             args["n_units_l{}".format(i)]=n_units#单层神经网络的神经元个数
         #一些DQN的其它选项，这部分是解耦的关键
         args["Net_option"]="DQN_Net"
@@ -48,6 +48,7 @@ class DQN_Trial(Trial_base):
         #我的建议是，保持下面的这种繁复形式，作为系统的default设置
         #需要添加新的写法的时候，直接复制本类，写一个DQN_Trial_2的类
         #因为我们需要足够多的细节暴露出来，这样的可变性最强
+        print("new loop started")
         optimizer=DiscreteOpt()
         BATCHSIZE=self.Batchsize
         replaybuff=Prioritized_Replaybuffer(BATCHSIZE)
@@ -57,7 +58,7 @@ class DQN_Trial(Trial_base):
         actor=agent
         actor.use_eps_flag=1
         actor_target=agent.deepCopy()
-        actor_target.actor_.load_state_dict(actor.actor_.state_dict())
+        actor_target.actor.load_state_dict(actor.actor.state_dict())
         optimizer.set_NET(actor.actor,actor_target.actor)
         initstate=envnow.randominit()
         lastobs=initstate
@@ -70,22 +71,25 @@ class DQN_Trial(Trial_base):
             obs,reward,done,info=envnow.step(action)
             total_reward+=reward
 
-            if done or info=="speed_out":
+            if done :
                 obs=None
 
 
+
             replaybuff.appendnew(lastobs,actor.action,obs,reward)
-            if done or info=="speed_out":
+            if done or info=="truncated":
                 lastobs=envnow.randominit()
+                epoch+=1
+                total_reward=0
             else:
                 lastobs=deepcopyMat(obs)
-            if step_done>BATCHSIZE+10 :#训练过程,只在每次完成一个epoch之后进行，并不是每一步都执行
-                loss=optimizer.loss_calc()
-                loss.backward()
-                # writer.add_histogram("gradient check",actor.actor_.layer1.weight.grad, epoch)
-                optimizer.updateNetwork(0)
-                epoch+=1
+            #现在，我想要借助理论知识，寻找一下可能的异常，用来验证我们的理论知识是正确的
+            loss=optimizer.loss_calc()
+            loss.backward()
+            optimizer.updateNetwork(0)
+            optimizer.TargetNetsoftupdate(0)
 
-                optimizer.TargetNetsoftupdate(0)
+
+
 
             step_done+=1

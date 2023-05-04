@@ -3,27 +3,35 @@ import torch
 class Basic_env:
     def __init__(self):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        pass
+
+
+
     def set_pointee(self,pointee):
         self.pointee=pointee
+        if(hasattr(self.pointee.pointee, 'calcobs')==False):
+            assert False,"calcobs function not define!"
+        if(hasattr(self.pointee.pointee, 'getreward')==False):
+            assert False,"getreward function not define!"
+        if(hasattr(self.pointee.pointee, 'randonsample')==False):
+            assert False,"randonsample function not define!"
     def step(self,action): #这个函数必须继承加重写
         actionin=self.typecheck(action)
         statenext,done,info= self.pointee.stepin(actionin)
-        if(hasattr(self.pointee.pointee, 'calcobs')):
-            obs=self.pointee.pointee.calcobs(statenext)
-        else:
-            obs=statenext
+        obs=self.pointee.pointee.calcobs(statenext)
+
         obs=self.typecheck(obs)
         obs = torch.tensor(obs, dtype=torch.float32, device=self.device)
-        if(hasattr(self.pointee.pointee, 'getreward')):
-            reward=self.pointee.pointee.getreward(statenext,actionin)
-        else:
-            reward=0
+        reward=self.pointee.pointee.getreward(statenext,actionin)
+
 
         return obs,reward,done,info
     def setstate(self,state):
         callbackinfo=self.pointee.setstate(self.typecheck(state))
         return callbackinfo
+    def randominit(self):
+        initstate=self.pointee.randonsample()
+        lastobs=self.pointee.setstate(self.typecheck(initstate))
+        return lastobs
     def typecheck(self,vector):##始终使得宽小于长
 
         if isinstance(vector,list): #按照list类型进行转化

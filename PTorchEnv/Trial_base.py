@@ -3,6 +3,7 @@ import torch
 from NNFactory import NNFactory
 import numpy as np
 from PTorchEnv.matrix_copt_tool import deepcopyMat
+from PyTorchTool.FileManager import FileManager
 class Trial_base():
     def __init__(self):
         self.Trial_Sequence=0
@@ -45,6 +46,7 @@ class Trial_base():
         # set_seed(env, args['seed'])
 
         # create agent object
+        filsaved=FileManager()
         self.agent = self.netfactory.create_agent(args)
         # train loop
         if hasattr(self.pointee,"TrainingLoop"):
@@ -54,8 +56,8 @@ class Trial_base():
             return  0
 
 
-        self.agent.save_model(agent_id) #我们需要在actor_proxy内部置入FileManager，老早以前就完成了
-
+        # self.agent.save_model(agent_id) #我们需要在actor_proxy内部置入FileManager，老早以前就完成了
+        torch.save(self.agent.actor, str(agent_id)+'.pt')
         # evaluate its performance
         n_episodes=5
         rewards, steps = self.evaluate(self.agent, n_episodes)
