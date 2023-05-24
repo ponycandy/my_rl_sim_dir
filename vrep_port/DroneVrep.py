@@ -11,12 +11,17 @@ import math # import the math module
 class DroneVrep:
     def __init__(self):
         sim.simxFinish(-1) # close any previous connection
-        self.clientID = sim.simxStart('127.0.0.1', 19997, True, True, 5000, 5) # connect to CoppeliaSim
+        self.clientID = sim.simxStart('127.0.0.1', 19999, True, True, 5000, 5) # connect to CoppeliaSim
         if self.clientID != -1: # connection successful
             print('Connected to CoppeliaSim')
         else:
             assert False,"Failed to Connect"
-
+        codes=sim.simxSynchronous(self.clientID,True)
+        sim.simxStartSimulation(self.clientID,sim.simx_opmode_oneshot)
+        if codes != -1: # connection successful
+            print('Connected to sync')
+        else:
+            assert False,"Failed to sync"
         self.jointHandleList=[]
         index=0
         while index<4:
@@ -30,12 +35,8 @@ class DroneVrep:
         self.body=sim.simxGetObjectHandle(self.clientID,'./base',sim.simx_opmode_blocking )
         self.body=self.body[1]
 
-        codes=sim.simxSynchronous(self.clientID,True)
-        if codes != -1: # connection successful
-            print('Connected to sync')
-        else:
-            assert False,"Failed to sync"
-        sim.simxStartSimulation(self.clientID,sim.simx_opmode_blocking)
+
+
     def set_speed(self,index,velocity):
         if index==1 or index==3:
             velocity=-velocity
@@ -45,6 +46,7 @@ class DroneVrep:
         else:
             assert False,'Failed to set joint target vel'
         sim.simxSynchronousTrigger(self.clientID)
+
     def set_speed_list(self,velocity_list):
         index=0
         velocity_list[1]=-velocity_list[1]
