@@ -11,8 +11,9 @@ class SwarmTCP(TCPenv):
         self.normalizer=WelFord_Normalizer()
 
     def getreward(self,state,action):
-        reward=state[2,2]*0.5+state[2,8]*0.5
-
+        # reward=state[2,2]*0.5+state[2,8]*0.5+0.1*state[3,0]
+        reward=0.1*state[3,0]
+#第四行是动作差奖励值
         return reward
     def calcobs(self,statevector):
         new_vec=statevector[1,:]

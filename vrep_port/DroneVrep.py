@@ -28,21 +28,21 @@ class DroneVrep:
             returnCode,handles=sim.simxGetObjectHandle(self.clientID, './propeller['+str(index)+']/joint', sim.simx_opmode_blocking)
             self.jointHandleList.append(handles)
             if returnCode == sim.simx_return_ok: # handle retrieved successfully
-                print('Got joint handle')
+                pass
             else:
                 assert False,"Failed to get joint"
             index+=1
         self.body=sim.simxGetObjectHandle(self.clientID,'./base',sim.simx_opmode_blocking )
         self.body=self.body[1]
-
-
+        self.drone=sim.simxGetObjectHandle(self.clientID,'Quadcopter',sim.simx_opmode_blocking )
+        self.drone=self.drone[1]
 
     def set_speed(self,index,velocity):
         if index==1 or index==3:
             velocity=-velocity
         returnCode = sim.simxSetJointTargetVelocity(self.clientID, self.jointHandleList[index], velocity, sim.simx_opmode_blocking)
         if returnCode == sim.simx_return_ok: # position set successfully
-            print('Set joint target vel')
+            pass
         else:
             assert False,'Failed to set joint target vel'
         sim.simxSynchronousTrigger(self.clientID)
@@ -54,7 +54,7 @@ class DroneVrep:
         while index<4:
             returnCode = sim.simxSetJointTargetVelocity(self.clientID, self.jointHandleList[index], velocity_list[index], sim.simx_opmode_blocking)
             if returnCode == sim.simx_return_ok: # position set successfully
-                print('Set joint target vel')
+                pass
             else:
                 assert False,'Failed to set joint target vel'
             index+=1
@@ -83,3 +83,10 @@ class DroneVrep:
         linear=vel[1]
         omega=vel[2]
         return linear,omega
+    # 下面两个函数的bug在于：你不能够只设置base的位置，必须设置整个qudrocoptor的位置
+    def set_pos(self,pos):
+        ret=sim.simxSetObjectPosition(self.clientID,self.drone,-1,pos,sim.simx_opmode_blocking)
+        return ret
+    def set_orien(self,orien):
+        ret=sim.simxSetObjectOrientation(self.clientID,self.drone,-1,orien,sim.simx_opmode_blocking)
+        return ret
