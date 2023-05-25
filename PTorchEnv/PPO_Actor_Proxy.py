@@ -11,10 +11,11 @@ class PPO_Actor_Proxy(Prob_Proxy):
 
         return output
     def chooseaction(self,num):  #对于离散状态来说，连续状态选择set range即可
-        if num==0:
-            #左移
-            force=0
-            return force
-        if num==1:
-            force=1
-            return force
+        # if num==0:
+        #     #左移
+        #     force=0
+        #     return force
+        # if num==1:
+        #     force=1
+        #     return force
+        return num.item()
