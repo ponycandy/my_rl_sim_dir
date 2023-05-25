@@ -75,11 +75,11 @@ class Critic_PPO(nn.Module):
 class Actor_Drone(nn.Module):
     def __init__(self, learning_rate=3e-4):
         super(Actor_Drone, self).__init__()
-        self.linear1 = nn.Linear(12, 256)
-        self.linear2 = nn.Linear(256, 128)
-        self.linear3 = nn.Linear(128, 128)
-        self.linear4 = nn.Linear(128, 128)
-        self.linear5 = nn.Linear(128, 4)
+        self.linear1 = nn.Linear(12, 24)
+        self.linear2 = nn.Linear(24, 24)
+        self.linear3 = nn.Linear(24, 24)
+        self.linear4 = nn.Linear(24, 24)
+        self.linear5 = nn.Linear(24, 4)
 
     def forward(self, state):
         """

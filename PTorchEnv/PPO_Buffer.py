@@ -14,7 +14,7 @@ class PPO_Buffer():
         # 类型检查是这里的职责
         lastobs=TensorTypecheck(lastobs).to(self.device).to(torch.float32)  #一般来说，lastobs输入默认为列向量
         self.states.append(lastobs.t())  #lastobs must be a*n tensor and this should be done outside here
-        real_action=action[0]
+        real_action=TensorTypecheck(action[0]).t()
         real_action_log=action[1]
         state_eval=action[2]
         self.actions.append(real_action)
@@ -32,9 +32,9 @@ class PPO_Buffer():
         del self.state_values[:]
         del self.is_terminals[:]
     def get_Batch_data(self):
-        #这里有一个bug如果动作或者状态的维度=1，那么squeeze就会全部缩水掉，必须unsqueeze来一个维度
         old_states = torch.squeeze(torch.stack(self.states, dim=0),2).detach().to(self.device)
         old_actions = torch.squeeze(torch.stack(self.actions, dim=0),2).detach().to(self.device)
         old_logprobs = torch.squeeze(torch.stack(self.logprobs, dim=0)).detach().to(self.device)
         old_state_values = torch.squeeze(torch.stack(self.state_values, dim=0)).detach().to(self.device)
         return old_states,old_actions,old_logprobs,old_state_values
+    #上面这个东西多维度会有问题

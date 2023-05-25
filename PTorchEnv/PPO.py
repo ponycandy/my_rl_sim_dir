@@ -64,27 +64,31 @@ class PPO:
 
         self.stepdone=1
         old_states,old_actions,old_logprobs,old_state_values=self.buffer.get_Batch_data()
+        #4000，4 4000， 4000， 4000，
         #获取所有buffer数据
         advantages,rewards=self.CalcAdvatange(0)
+        #4000，  4000，
         #计算优势函数
         # Optimize policy for K epochs
         for _ in range(self.K_epochs):
 
             # Evaluating old actions and values
             logprobs, state_values, dist_entropy=self.evaluate(old_states,old_actions)
-
+            #4000， 4000，1 4000，
             # match state_values tensor dimensions with rewards tensor
             state_values = torch.squeeze(state_values)
-
+            #4000，
             # Finding the ratio (pi_theta / pi_theta__old)
             ratios = torch.exp(logprobs - old_logprobs.detach())
-
+            #4000，
             # Finding Surrogate Loss
             surr1 = ratios * advantages
+            #4000，
             surr2 = torch.clamp(ratios, 1-self.eps_clip, 1+self.eps_clip) * advantages
-
+            #4000，
             # final loss of clipped objective PPO
             loss = -torch.min(surr1, surr2)+ 0.5 * self.MseLoss(state_values, rewards) - 0.01 * dist_entropy
+            #4000，
             #这个损失函数将critic和actor的损失函数放一块了
             # take gradient step
             self.optimizer.zero_grad()
@@ -102,18 +106,25 @@ class PPO:
             mean = self.actorNet(old_states)
             # Create our Multivariate Normal Distribution
             dist = MultivariateNormal(mean, self.actor_proxy.cov_mat)
+            #4000，1
             # Sample an action from the distribution and get its log prob
             logprobs = dist.log_prob(old_actions)
+            #4000
             state_values=self.criticNet(old_states)
             dist_entropy=dist.entropy()
         #
         else:
             action_probs = self.actorNet(old_states)
+            #4000,2
             dist = Categorical(action_probs)
-
-            logprobs = dist.log_prob(old_actions)
+            #4000,2
+            logprobs = dist.log_prob(old_actions.squeeze())
+            #这一步的输入问题,如果是离散动作选择，那么肯定是1d的，这里可以直接转然后unsqueeze
+            #4000
             state_values=self.criticNet(old_states)
+            #4000,1
             dist_entropy=dist.entropy()
+            #4000
 
         # logprobs, state_values, dist_entropy = self.policy.evaluate(old_states, old_actions)
         return logprobs, state_values, dist_entropy
