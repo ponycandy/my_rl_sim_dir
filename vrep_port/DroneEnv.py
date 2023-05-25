@@ -12,6 +12,9 @@ class DroneEnv(Pyenv):
         self.target_pos_y=0
         self.target_pos_z=1
         self.target_pos_yaw=0
+        self.steps=0
+        self.nowakingcount=0
+        self.nowakingflag=0
 
         #总是使用statenow表示当前状态，请注意：
     # statenow同样被parent级调用，所以不要更改变量名称！！
@@ -36,14 +39,17 @@ class DroneEnv(Pyenv):
                     and abs(self.statenow[7])<0.1  and abs(self.statenow[8])<0.1):
                 reward+=100
         #     完成任务并给与奖励
+        if(self.nowakingflag==1):
+            reward=reward-200
+            self.nowakingflag=0
         return reward
     def calcobs(self,statevector):
 
         return  self.statenow
     def step_in(self,actionin):
         # 行动为1*4矩阵
-
-        vel_list=[actionin[0,0],actionin[1,0],actionin[2,0],actionin[3,0]]
+        self.steps+=1
+        vel_list=[actionin[0,0].item(),actionin[1,0].item(),actionin[2,0].item(),actionin[3,0].item()]
         self.drone.set_speed_list(vel_list)
         linear,angular=self.drone.get_drone_vel()
         pos=self.drone.get_drone_pos()
@@ -63,9 +69,12 @@ class DroneEnv(Pyenv):
     # 这里的输入也采用相对位置输入作为特征工程
     def missiondonejudge(self,statenext):
         if(abs(self.statenow[3])>5 or abs(self.statenow[4])>5 or abs(self.statenow[5])>5):
-            return 1
+            return 1  #超限
         if(abs(self.statenow[3])<0.1 and abs(self.statenow[4])<0.1 and abs(self.statenow[5])<0.1 and abs(self.statenow[6])<0.1
                 and abs(self.statenow[7])<0.1  and abs(self.statenow[8])<0.1):
+            return 1  #达标
+        if(self.not_waking()):
+            self.nowakingflag=1  #未离地
             return 1
         return 0
     def sampleaction(self):
@@ -84,6 +93,14 @@ class DroneEnv(Pyenv):
                        linear[0],linear[1],linear[2],
                        angular[0],angular[1],angular[2]]
         return self.statenow
-# getreward(statenext,actionin)
-# Info_extract(self.statenext)
-# missiondonejudge(self.statenext)
+    def not_waking(self):
+        # 如果一直贴在地上，就会导致这一条
+        if(abs((self.statenow[5]+self.target_pos_z))<0.05):
+            self.nowakingcount+=1
+        else:
+            self.nowakingcount=0
+        if(self.nowakingcount>200):
+            done=1
+        else:
+            done=0
+        return done

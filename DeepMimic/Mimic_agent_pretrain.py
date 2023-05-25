@@ -42,6 +42,7 @@ m_log=Boardlogger()
 while True:
     # select action with policy
     action=actor_proxy.response(lastobs)
+    #卧槽找到一个bug:action必须是竖着的！！不然存到buffer里面就没办法用了！！
     obs,reward,done,info= envnow.step(action)
     replaybuff.appendnew(lastobs,actor_proxy.action,obs,reward)
     lastobs=TensorTypecheck(obs)

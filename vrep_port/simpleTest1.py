@@ -7,12 +7,7 @@ from PTorchEnv.PPO_Actor_Proxy import PPO_Actor_Proxy
 import PTorchEnv.model
 from PTorchEnv.Typechecker import TensorTypecheck
 from DroneEnv import DroneEnv
-import torch
-import numpy as np
 
-import gym
-# import roboschool
-from tensorboardX import SummaryWriter
 
 from PPO import PPO
 
