@@ -23,7 +23,7 @@ class FileManager():
         #name是一个字符串类型，比如:'network'，无需输入后缀名，这里会自动补全
     def save_model_out(self,model,name):
         # now_time = dt.datetime.now().strftime("%F-%H%M%S")
-        torch.save(model, name+'.pt')
+        torch.save(model.state_dict(), name+'.pt')
     def set_counter_mode(self,model_obj,name,savingiteration):
         self.saving_count=0
         self.saving_flag=1

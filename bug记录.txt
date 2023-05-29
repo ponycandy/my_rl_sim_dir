@@ -1,0 +1,35 @@
+function sysCall_init()
+
+    propellerHandles={}
+    jointHandles={}
+for i=1,4,1 do
+propellerHandles[i]=sim.getObject('./propeller['..(i-1)..']/respondable')
+jointHandles[i]=sim.getObject('./propeller['..(i-1)..']/joint')
+end
+end
+
+function sysCall_cleanup()
+
+end
+
+function sysCall_actuation()
+
+end
+
+
+function handlePropeller(index,jointvelocity)
+  propellerRespondable=propellerHandles[index]
+    propellerJoint=jointHandles[index]
+    propeller=sim.getObjectParent(propellerRespondable)
+
+    totalExertedForce=jointvelocity
+    force={0,0,totalExertedForce}
+    m[4]=0
+    m[8]=0
+    m[12]=0
+    force=sim.multiplyVector(m,force)
+    local rotDir=1-math.mod(index,2)*2
+    torque={0,0,rotDir*0.002*jointvelocity}
+    torque=sim.multiplyVector(m,torque)
+    sim.addForceAndTorque(propellerRespondable,force,torque)
+end

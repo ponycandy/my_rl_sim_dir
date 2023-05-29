@@ -1,0 +1,1 @@
+tensorboard --logdir=my_log_dir
