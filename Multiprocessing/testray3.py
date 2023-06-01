@@ -1,0 +1,51 @@
+import torch
+
+from PPO_Single_instance import PPO_Single_instance
+from PTorchEnv.model import Actor_Softmax,Critic_PPO,Actor
+
+import ray
+
+ray.init()
+
+worker_num=2
+
+#创建PPo的列表
+PPO_list = []
+#创建公有的网络：
+actorNet = Actor(4, 24, 2)
+criticM = Critic_PPO(4, 24, 1)
+for i in range(worker_num):
+    PPO_list.append(PPO_Single_instance.remote())
+
+while True:
+    return_id_list=[]
+    for PPO_agent in PPO_list:
+        return_id_list.append(PPO_agent.Train_Once())
+    results = ray.get(return_id_list)
+    #计算平均的参数值
+    act_net_list=[]
+    cri_net_list=[]
+    for PPO_agent in PPO_list:
+        act_net_list.append(PPO_agent.get_act_net())
+        cri_net_list.append(PPO_agent.get_cri_net())
+    act_model_dict=actorNet.state_dict()
+    cri_model_dict=criticM.state_dict()
+    for k1,k2 in zip(act_model_dict.keys(),cri_model_dict.keys()):
+        act_results=torch.zeros_like(act_model_dict[k1])
+        cri_results=torch.zeros_like(cri_model_dict[k2])
+        for PPO_agent in PPO_list:
+            act_results+=PPO_agent.get_act_net().state_dict()[k1]
+            cri_results+=PPO_agent.get_cri_net().state_dict()[k2]
+        act_results/=worker_num
+        cri_results/=worker_num
+        act_model_dict[k1]=act_results
+        cri_model_dict[k2]=cri_results
+    actorNet.load_state_dict(act_model_dict)
+    criticM.load_state_dict(cri_model_dict)
+    #参数平均值已经载入到主进程的网络中，接下来，同步到各个子进程的网络，这一步对主进程只读
+    # 不知道会不会出bug...
+    for PPO_agent in PPO_list:
+        PPO_agent.sync_net_params(actorNet,criticM)
+    #不知道这里做完要不要同步，等待callback回调
+    #一个进程结束，然后重新开始循环
+#以上多进程是基于我对ray的特性的理解，暂时没有用到shared object的特性
