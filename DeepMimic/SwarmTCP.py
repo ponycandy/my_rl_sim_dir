@@ -9,11 +9,19 @@ class SwarmTCP(TCPenv):
         self.set_simer(self)
         self.steps=0
         self.normalizer=WelFord_Normalizer()
+        self.limierror = 1
 
     def getreward(self,state,action):
         # reward=state[2,2]*0.5+state[2,8]*0.5+0.1*state[3,0]
-        reward=0.1*state[3,0]
-#第四行是动作差奖励值
+
+        if(abs(state[1,0])<self.limierror and abs(state[1,1])<self.limierror
+        and abs(state[1,3])<self.limierror and abs(state[1,4])<self.limierror and
+        abs(state[1,6])<self.limierror and abs(state[1,7])<self.limierror):
+            reward=1
+        else:
+            reward=0
+        #模仿2D推箱子的格式,首先完成模型预训练
+
         return reward
     def calcobs(self,statevector):
         new_vec=statevector[1,:]
@@ -22,8 +30,9 @@ class SwarmTCP(TCPenv):
     def Info_extract(self,statevector):
         maximum_error=statevector[2,5]
         self.steps+=1
-        if(maximum_error<-3000):#或许不应该设置最大步数,奖励类比pendulum
+        if(self.steps>200):#或许不应该设置最大步数,奖励类比pendulum
             self.done=1
+            self.steps=0
         else:
             self.done=0
         info="not_truncated"

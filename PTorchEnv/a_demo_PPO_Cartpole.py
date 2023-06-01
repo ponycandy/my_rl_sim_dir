@@ -49,6 +49,7 @@ current_ep_reward = 0
 epoch=1
 TIMESTAMP = "{0:%Y-%m-%dT%H-%M-%S/}".format(datetime.now())
 writer =SummaryWriter("./my_log_dir/"+TIMESTAMP)
+start=time.time()
 # training loop
 while True:
     # select action with policy
@@ -67,6 +68,9 @@ while True:
     #这里使用logger记录会比较好
     #因为提升是迅速的
     time_step +=1
+    if(time_step==4000):
+        end=time.time()
+        print(end-start,'s')
     current_ep_reward += reward
     optimizer.update()
 

@@ -4,7 +4,7 @@ from PPO_Single_instance import PPO_Single_instance
 from PTorchEnv.model import Actor_Softmax,Critic_PPO,Actor
 import gym
 import ray
-
+from PTorchEnv.CartpoleGym import CartPoleGym
 ray.init()
 
 worker_num=2
@@ -25,7 +25,8 @@ init_config={"actorNet":actorNet,
 for i in range(worker_num):
     agent=PPO_Single_instance.remote()
     agent.init_all_params.remote(init_config)
-    envnow = gym.make("CartPole-v1")  #这样子不行，请把CartPole-v1用Pyenv封装
+    # envnow = gym.make("CartPole-v1")  #这样子不行，请把CartPole-v1用Pyenv封装
+    envnow=CartPoleGym()
     agent.setenv.remote(envnow)
     PPO_list.append(agent)
 #初始化每个PPO线程的参数,这个可有点麻烦,包括环境,网络以及其它
