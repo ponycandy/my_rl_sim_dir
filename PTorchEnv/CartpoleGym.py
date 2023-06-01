@@ -13,10 +13,13 @@ class CartPoleGym(Pyenv):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def step_in(self,actionin):
-        obs, reward, done, info, _ = self.envnow.step(actionin)
+        obs, reward, done, info, _ = self.envnow.step(actionin.item())
         self.reward=reward
         self.done=done
-        self.info=info
+        if info:
+            self.info="truncated"
+        else:
+            self.info="no"
         self.obs=TensorTypecheck(obs)
         return self.obs
     def getreward(self,state,action):
@@ -32,5 +35,5 @@ class CartPoleGym(Pyenv):
     def randonsample(self):
 
         state,info= self.envnow.reset()
-        lastobs = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
-        return  lastobs
+        self.obs=state
+        return  self.obs

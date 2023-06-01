@@ -12,28 +12,30 @@ from PPO import PPO
 @ray.remote
 class PPO_Single_instance():
     def __int__(self):
+
+        #最好通过文本实现上面的网络初始化，现阶段暂时使用代码来指定网络
+        #下面这些东西的初始化都需要外部完成，所以强烈建议使用文本来初始化
+        #
+        pass
+    def init_all_params(self,params_dict):
         self.replaybuff = PPO_Buffer()
         self.optimizer = PPO()
         self.optimizer.set_Replaybuff(self.replaybuff, 0.99, 0.0003, 0.001)
 
         self.actor_proxy = PPO_Actor_Proxy()
-        #最好通过文本实现上面的网络初始化，现阶段暂时使用代码来指定网络
-        #下面这些东西的初始化都需要外部完成，所以强烈建议使用文本来初始化
-        #
-    def init_all_params(self,params_dict):
         self.actorNet=params_dict['actorNet']
         self.criticM=params_dict['criticM']
         self.actor_proxy.setNet(self.actorNet, self.criticM)
         self.actor_proxy.set_action_dim(params_dict['action_dim'])
-        self.actor_proxy.setActFlag(params_dict['action_dim'])
+        self.actor_proxy.setActFlag(params_dict['act_space'])
         self.actor_proxy.set_range(params_dict['action_scale'],params_dict['action_bias'])
         self.optimizer.setNet(self.actorNet, self.criticM, self.actor_proxy)
     def setenv(self,env):
         self.env=env  #将会复制所有传入的参数，而不是使用reference!
     def get_act_net(self):
-        return 1
+        return self.actorNet
     def get_cri_net(self):
-        return 1
+        return self.criticM
     def sync_net_params(self,actnet,criticnet):
         self.actor_proxy.actor.load_state_dict(actnet.state_dict())
         self.actor_proxy.critic.load_state_dict(criticnet.state_dict())
@@ -41,7 +43,7 @@ class PPO_Single_instance():
     def Train_Once(self):
         #这个函数会过一次PPO优化过程，然后返回一个flag值
         lastobs = self.env.randominit()
-        step=0
+        step=1
         while True:
             action = self.actor_proxy.response(lastobs)
             #这里有一个问题，lastobs的选取没有规范化，我自己的环境和

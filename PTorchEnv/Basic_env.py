@@ -63,10 +63,7 @@ class Basic_env:
             return mat
     def Getobservation(self,state):
         state=self.typecheck(state)
-        if(hasattr(self.pointee.pointee, 'calcobs')):
-            obs=self.pointee.pointee.calcobs(state)
-        else:
-            obs=state
+        obs=self.pointee.pointee.calcobs(state)
         return obs
     def Discretesample(self):#提供随机功能，压缩到0~1之间，需要自己放大
         if(hasattr(self.pointee.pointee, 'sampleaction')):

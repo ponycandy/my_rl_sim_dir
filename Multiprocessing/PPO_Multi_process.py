@@ -6,8 +6,9 @@ import gym
 import ray
 from PTorchEnv.CartpoleGym import CartPoleGym
 ray.init()
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-worker_num=2
+worker_num=1
 
 #创建PPo的列表
 PPO_list = []
@@ -22,18 +23,19 @@ init_config={"actorNet":actorNet,
              }
 #环境变量是自复制的，所以一般来说不通过上面的文本赋值，这样才能够保证TCP的兼容性
 #各个进程应该是获取一份copy而不是指针
-agent=PPO_Single_instance()
-agent.init_all_params(init_config)
-# envnow = gym.make("CartPole-v1")  #这样子不行，请把CartPole-v1用Pyenv封装
-envnow=CartPoleGym()
-#首先实验这个环境的可行性
-agent.setenv(envnow)
-PPO_list.append(agent)
+for i in range(worker_num):
+    agent=PPO_Single_instance.remote()
+    agent.init_all_params.remote(init_config)
+    # envnow = gym.make("CartPole-v1")  #这样子不行，请把CartPole-v1用Pyenv封装
+    envnow=CartPoleGym()
+    #首先实验这个环境的可行性
+    agent.setenv.remote(envnow)
+    PPO_list.append(agent)
 #初始化每个PPO线程的参数,这个可有点麻烦,包括环境,网络以及其它
 while True:
     return_id_list=[]
     for PPO_agent in PPO_list:
-        return_id_list.append(PPO_agent.Train_Once())
+        return_id_list.append(PPO_agent.Train_Once.remote())
         #这个设计模式并不要求远程函数一定有返回值，远程函数只要结束就会触发rayget的回调
     results = ray.get(return_id_list)
     #计算平均的参数值
@@ -45,8 +47,8 @@ while True:
     act_model_dict=actorNet.state_dict()
     cri_model_dict=criticM.state_dict()
     for k1,k2 in zip(act_model_dict.keys(),cri_model_dict.keys()):
-        act_results=torch.zeros_like(act_model_dict[k1])
-        cri_results=torch.zeros_like(cri_model_dict[k2])
+        act_results=torch.zeros_like(act_model_dict[k1]).to(device)
+        cri_results=torch.zeros_like(cri_model_dict[k2]).to(device)
         i=0
         for PPO_agent in PPO_list:
             act_results+=act_net_list[i].state_dict()[k1]
