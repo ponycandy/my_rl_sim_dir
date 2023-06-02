@@ -2,13 +2,14 @@ import torch
 
 from PPO_Single_instance import PPO_Single_instance
 from PTorchEnv.model import Actor_Softmax,Critic_PPO,Actor
+import time
 import gym
 import ray
 from PTorchEnv.CartpoleGym import CartPoleGym
 ray.init()
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-worker_num=1
+worker_num=2
 
 #创建PPo的列表
 PPO_list = []
@@ -31,6 +32,7 @@ for i in range(worker_num):
     #首先实验这个环境的可行性
     agent.setenv.remote(envnow)
     PPO_list.append(agent)
+    time.sleep(1)#防止两个纪录时间的logger写到同一个文件里面
 #初始化每个PPO线程的参数,这个可有点麻烦,包括环境,网络以及其它
 while True:
     return_id_list=[]
@@ -70,3 +72,20 @@ while True:
         #Actor methods cannot be called directly.
     #一个进程结束，然后重新开始循环
 #以上多进程是基于我对ray的特性的理解，暂时没有用到shared object的特性
+
+#目前来说，单个进程都是正确的
+#这说明参数拷贝没有错
+#所以问题在哪？
+#我觉得是，梯度没有清空？
+
+#啊没问题，就是之前建立线程的时候没分开，导致画到同一张图上面了
+
+#接下来是时间对比,我们将会严格等量计时，然后看两种训练方式到达的最右端相对位置
+#以此确定其实际效率
+#预计将会到达相同的横坐标轴，但是纵向坐标将会更高
+#计时90s
+#1 worker对比 2 worker可以很明显的看到，右边没有对齐，走得更远了，同时最终得分也更高
+
+# 1 worker 对比 4 worker则没有显著的提升
+
+#1 worker 对比 7 worker 则更差了

@@ -11,7 +11,7 @@ from PPO import PPO
 from PyTorchTool.Boardlogger import Boardlogger
 
 @ray.remote
-class PPO_Single_instance():
+class PPO_Single_Process():
     def __int__(self):
 
         #最好通过文本实现上面的网络初始化，现阶段暂时使用代码来指定网络
@@ -33,6 +33,8 @@ class PPO_Single_instance():
         self.actor_proxy.setActFlag(params_dict['act_space'])
         self.actor_proxy.set_range(params_dict['action_scale'],params_dict['action_bias'])
         self.optimizer.setNet(self.actorNet, self.criticM, self.actor_proxy)
+        if "single_buffer_size" in params_dict:
+            self.optimizer.updateinterval=params_dict['single_buffer_size']
     def setenv(self,env):
         self.env=env  #将会复制所有传入的参数，而不是使用reference!
     def get_act_net(self):
@@ -44,26 +46,14 @@ class PPO_Single_instance():
         self.actor_proxy.critic.load_state_dict(criticnet.state_dict())
         return 1
     def Train_Once(self):
-        #这个函数会过一次PPO优化过程，然后返回一个flag值
+        #没有optimize环节了，所以务必手动的clear所有内容
+        self.replaybuff.clear()
         lastobs = self.env.randominit()
         step=1
         current_ep_reward = 0
         while True:
             action = self.actor_proxy.response(lastobs)
-            #这里有一个问题，lastobs的选取没有规范化，我自己的环境和
-            #gym的环境选取lastobs的方法是不一样的，解决方法是把reset单独写一个函数
-            #保证以后可以更改
-            #但是这个方法很笨，统一环境也很笨.....
-            #暂时使用单独函数封装来解决问题吧
-
-            #有了，创建一个新的env，这个env按照我自己的标准输出来输出（继承pyenv）
-            #这样包一层后再放到这里面来用，API就统一了,这样就不需要额外的reset函数
-
-            #下面同样有这个问题，官方环境和自己环境的返回值不一样，
-            #总不能每次都修改吧，但是目前暂时先这样，我还没想好
-            #比较通用的封装
             obs,reward,done,info= self.env.step(action)
-
             self.replaybuff.appendnew(lastobs, self.actor_proxy.action, obs, reward)
             lastobs = TensorTypecheck(obs)
             if done or info== "truncated":
@@ -72,8 +62,9 @@ class PPO_Single_instance():
                 self.rllogger.log_per_step_scalr(current_ep_reward, "ep_reward")
                 current_ep_reward = 0
             current_ep_reward += reward
-            self.optimizer.update()
             step += 1
             if(step>self.optimizer.updateinterval):
                 break
-        return 1
+
+        return self.replaybuff
+    #基本的思路是，大部分的内容不加改变，只是返回值变成所有的经验池而不是优化的网络参数
