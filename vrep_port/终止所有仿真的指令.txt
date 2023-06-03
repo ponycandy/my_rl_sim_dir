@@ -1,0 +1,1 @@
+taskkill /im coppeliaSim.exe /t /f

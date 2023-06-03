@@ -1,8 +1,12 @@
+#关于如何更改default listen port的方式：https://medium.com/@joacodso/multiple-v-rep-instances-in-one-machine-bd89fb0ee72e
+#通过这个接口我们可以手动更改所有的监听接口
+#进而使用文本实现集群仿真
 from zmqRemoteApi import RemoteAPIClient
-
+#修改ZMQ接口的位置在下面;C:\vrep\programming\zmqRemoteApi 这里有一个lua脚本，里面写死了23000的接口
+#参照上面的博客一起更改就行
 class DroneVrep:
-    def __init__(self):
-        self.client = RemoteAPIClient()
+    def __init__(self,portnum=23000):
+        self.client = RemoteAPIClient(port=portnum)
         self.sim = self.client.getObject('sim')
 
         self.client.setStepping(True)

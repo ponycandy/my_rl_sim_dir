@@ -1,0 +1,8 @@
+将下面这句话放到脚本里面就可以更改启动时候的端口号：
+coppeliaSim -GzmqRemoteApi.rpcPort=23005
+把这个做成bat脚本再执行
+注意，端口号不要连续或者连2，确保空4个数
+这是因为代码里面会使用相邻的端口作为server和client
+要打开指定的scene，使用以下指令：
+coppeliaSim drone.ttt -GzmqRemoteApi.rpcPort=23005
+其中drone.ttt放在vrep文件夹下，或者指定绝对/相对路径

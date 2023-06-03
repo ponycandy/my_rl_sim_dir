@@ -13,9 +13,12 @@ from PPO import PPO
 
 
 ####### initialize environment hyperparameters ######
-env=DroneEnv()
+env=DroneEnv(23005)
 
-
+#vrep的接口和TCP的接口还不一样
+#TCP的接口只要考虑两端就行了，
+#但是vrep的接口用的是zmq，所以需要考虑到其它的东西
+#但是我们还是以这个例子开始训练比较好
 
 
 

@@ -4,10 +4,10 @@ from Pyenv import Pyenv
 from  DroneVrep import DroneVrep
 import collections
 class DroneEnv(Pyenv):
-    def __init__(self):
+    def __init__(self,portnum=23000):
         super(DroneEnv, self).__init__()
         self.set_simer(self)
-        self.drone=DroneVrep()
+        self.drone=DroneVrep(portnum)
         self.target_pos_x=0
         self.target_pos_y=0
         self.target_pos_z=1

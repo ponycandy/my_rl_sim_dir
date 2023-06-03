@@ -1,0 +1,1 @@
+{"name": "heavon", "worker_num": 3, "currnet_sequence": 1, "port_num": 23005, "env_cmd": "DroneEnv(23005)", "env_import": "from DroneEnv import DroneEnv", "extra_cmd_after": [{"cmd": "import os"}, {"cmd": "os.system(\"python change_config_after.py\")"}]}

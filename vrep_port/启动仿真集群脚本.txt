@@ -1,0 +1,2 @@
+echo on
+python initialize_simulations.py
