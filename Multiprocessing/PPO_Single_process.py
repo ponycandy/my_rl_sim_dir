@@ -4,13 +4,20 @@ import time
 from datetime import datetime
 from PTorchEnv.PPO_Buffer import PPO_Buffer
 from PTorchEnv.PPO_Actor_Proxy import PPO_Actor_Proxy
-from PTorchEnv.model import Actor_Softmax,Critic_PPO,Actor
 from PTorchEnv.Typechecker import TensorTypecheck
 import ray
 from PPO import PPO
 from PyTorchTool.Boardlogger import Boardlogger
+import json
+import torch
+#注意，此处的进程已经加速了，而且也已经用上了GPU
+#通过检测，对应的PID确实运行在了不同的核上面，无法通过下面的num_cpus更改
+#因为调度到单个核心是CPU硬件层级的API,故Ray也必然无法操作这个
+#这个num_cpus只是给人看的，不代表它真的能控制单个CPU跑单个进程
+#想一想我们怎么跑我们自己的代码就知道了，这是做不到的
 
-@ray.remote
+#所以，想要加速，多机多cpu（不是多核），是必须的
+@ray.remote(num_cpus=1)
 class PPO_Single_Process():
     def __int__(self):
 
@@ -19,8 +26,12 @@ class PPO_Single_Process():
         #
         pass
     def init_all_params(self,params_dict):
-        self.rllogger=Boardlogger()
 
+        # with open("config.json", "r", encoding='UTF-8') as f:
+        #     params_dict = json.load(f)
+        self.rllogger=Boardlogger()
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        print(device)
         self.replaybuff = PPO_Buffer()
         self.optimizer = PPO()
         self.optimizer.set_Replaybuff(self.replaybuff, 0.99, 0.0003, 0.001)
@@ -35,8 +46,18 @@ class PPO_Single_Process():
         self.optimizer.setNet(self.actorNet, self.criticM, self.actor_proxy)
         if "single_buffer_size" in params_dict:
             self.optimizer.updateinterval=params_dict['single_buffer_size']
-    def setenv(self,env):
-        self.env=env  #将会复制所有传入的参数，而不是使用reference!
+    def setenv(self,configfilename):
+        with open(configfilename, "r", encoding='UTF-8') as f:
+            params_dict = json.load(f)
+        if "extra_cmd_prev" in params_dict:
+            for command in params_dict["extra_cmd_prev"]:
+                exec(command["cmd"])
+        exec(params_dict["env_import"])
+        self.env=eval(params_dict["env_cmd"])
+        if "extra_cmd_after" in params_dict:
+            for command in params_dict["extra_cmd_after"]:
+                exec(command["cmd"])
+                #理论上需要把所有的python脚本写到这个cmd里面
     def get_act_net(self):
         return self.actorNet
     def get_cri_net(self):

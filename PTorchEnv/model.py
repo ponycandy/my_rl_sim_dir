@@ -93,3 +93,24 @@ class Actor_Drone(nn.Module):
         x = torch.tanh(x)
 
         return x
+class Actor_Humanoid(nn.Module):
+    def __init__(self, learning_rate=3e-4):
+        super(Actor_Humanoid, self).__init__()
+        self.linear1 = nn.Linear(44, 24)
+        self.linear2 = nn.Linear(24, 24)
+        self.linear3 = nn.Linear(24, 24)
+        self.linear4 = nn.Linear(24, 24)
+        self.linear5 = nn.Linear(24, 17)
+
+    def forward(self, state):
+        """
+        Param state is a torch tensor
+        """
+        x = F.relu(self.linear1(state))
+        x = F.relu(self.linear2(x))
+        x = F.relu(self.linear3(x))
+        x = F.relu(self.linear4(x))
+        x = F.relu(self.linear5(x))
+        x = torch.tanh(x)
+
+        return x

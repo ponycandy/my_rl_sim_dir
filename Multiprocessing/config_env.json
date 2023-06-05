@@ -1,0 +1,5 @@
+
+{
+  "env_cmd":"CartPoleGym()",
+  "env_import": "from PTorchEnv.CartpoleGym import CartPoleGym"
+             }
