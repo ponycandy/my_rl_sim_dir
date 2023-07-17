@@ -15,7 +15,7 @@ import torch
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 RL_logger=RL_Calculator()
 TIMESTAMP = "{0:%Y-%m-%dT%H-%M-%S/}".format(datetime.now())
-# writer =SummaryWriter("./my_log_dir/"+TIMESTAMP)
+writer =SummaryWriter("./my_log_dir/"+TIMESTAMP)
 # ploterr=RLDebugger()
 optimizer=DiscreteOpt()
 BATCHSIZE=10000
@@ -57,7 +57,7 @@ while True:
         initstate=[0,0, 0.2*(random.random()-0.5),0]
         state,info= envnow.reset()
         lastobs = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
-        # writer.add_scalar("reward",total_reward,epoch)
+        writer.add_scalar("reward",total_reward,epoch)
         epoch+=1
         total_reward=0
     else:

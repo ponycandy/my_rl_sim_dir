@@ -20,6 +20,7 @@ from tensorboardX import SummaryWriter
 from PPO import PPO
 preatrained=False
 use_pretrainmodel=True
+using_critic=False
 if preatrained==True:
     ####### initialize environment hyperparameters ######
     envnow=PushingBox2DTCP(8001,"127.0.0.1")
@@ -105,14 +106,15 @@ else:
     actorNet=Actor(4,24,2)
     criticM=Critic_PPO(4,24,1)
     if(use_pretrainmodel):
-        state_dict = torch.load('actor_net_pretrained.pt')
+        state_dict = torch.load('../SuperVislearning/actor_net_pretrained.pt')
         actorNet.load_state_dict(state_dict)
-        state_dict = torch.load('critic_net_pretrained.pt')
-        criticM.load_state_dict(state_dict)
+        if using_critic:
+            state_dict = torch.load('critic_net_pretrained.pt')
+            criticM.load_state_dict(state_dict)
     actor_proxy.setNet(actorNet,criticM)
     actor_proxy.set_action_dim(2)
     actor_proxy.setActFlag("Continuous")
-    actor_proxy.set_range([2,2],[0,0])
+    actor_proxy.set_range([10,10],[0,0])
     actor_proxy.decayInterval=200
     optimizer.setNet(actorNet,criticM,actor_proxy)
     optimizer.updateinterval=300
@@ -130,7 +132,8 @@ else:
     while True:
         # select action with policy
         action=actor_proxy.response(lastobs)
-        obs,reward,done,info= envnow.step(action)
+        # action=10*actorNet(lastobs.to(torch.float32))
+        obs,reward,done,info= envnow.step(action.cpu())
         replaybuff.appendnew(lastobs,actor_proxy.action,obs,reward)
         lastobs=TensorTypecheck(obs)
         if done or info=="truncated":

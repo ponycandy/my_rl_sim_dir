@@ -25,7 +25,7 @@ class PushingBox2DTCP(TCPenv):
         return info
     def missiondonejudge(self,statevector):
         done=0
-        if(abs(statevector[0,0])>5 and abs(statevector[1,0])>5):
+        if(abs(statevector[0,0])>5 or abs(statevector[2,0])>5): #顺序是x,vx,y,vy
             done=1
             self.steps=0
             return done
@@ -61,7 +61,7 @@ class PushingBox2DTCP_exact(TCPenv):
         return info
     def missiondonejudge(self,statevector):
         done=0
-        if(abs(statevector[0,0])>5 and abs(statevector[1,0])>5):
+        if(abs(statevector[0,0])>5 or abs(statevector[2,0])>5):
             done=1
             self.steps=0
             return done
